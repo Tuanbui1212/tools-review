@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Môi trường
+.env
+*.log
+
+# Thư mục làm việc local của engine
+client/app/engine/workspace/
+
+# Hệ điều hành / editor
+.DS_Store
+Thumbs.db
+.idea/

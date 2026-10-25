@@ -1,0 +1,74 @@
+# Main server: API + hạ tầng dùng chung (PostgreSQL, Redis, MinIO).
+# Worker là service riêng, chạy ở server khác: xem ../worker/docker-compose.yml (D045).
+name: crt-main
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-crt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crt}
+      POSTGRES_DB: ${POSTGRES_DB:-crt}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-crt} -d ${POSTGRES_DB:-crt}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-crt-minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-crt-minio-secret}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  api:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-crt}:${POSTGRES_PASSWORD:-crt}@postgres:5432/${POSTGRES_DB:-crt}
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-crt-minio}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-crt-minio-secret}
+      S3_BUCKET: ${S3_BUCKET:-crt-files}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-jwt-secret-change-me-in-production}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/srv/main/app
+      - ./alembic:/srv/main/alembic
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:

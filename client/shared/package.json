@@ -1,0 +1,23 @@
+{
+  "name": "@crt/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^5.62.0",
+    "antd": "^5.22.0",
+    "react": "^18.3.0"
+  },
+  "devDependencies": {
+    "@tanstack/react-query": "5.62.8",
+    "@types/react": "18.3.12",
+    "antd": "5.22.5",
+    "react": "18.3.1",
+    "typescript": "5.7.2"
+  }
+}

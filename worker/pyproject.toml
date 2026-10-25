@@ -1,0 +1,39 @@
+[project]
+name = "comic-review-worker"
+version = "0.1.0"
+description = "Worker service: nhận task từ Main qua Redis và xử lý (D045)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.32,<1",
+    "pydantic>=2.9,<3",
+    "pydantic-settings>=2.6,<3",
+    "celery>=5.4,<6",
+    "redis>=5.2,<6",
+    "flower>=2.0,<3",
+    "httpx>=0.27,<1",
+    "boto3>=1.35,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9",
+    "ruff>=0.8,<1",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
