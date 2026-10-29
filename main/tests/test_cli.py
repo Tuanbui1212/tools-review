@@ -3,6 +3,7 @@ from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app import cli
+from app.core.config import Settings
 from app.models.user import User
 
 
@@ -29,4 +30,28 @@ def test_create_admin_rejects_short_password(
     monkeypatch.setattr(cli.getpass, "getpass", lambda _prompt="": "short")
 
     assert cli.main(["create-admin", "--username", "boss", "--email", "b@example.com"]) == 1
+    assert cli_db.scalars(select(User)).all() == []
+
+
+def test_seed_dev_creates_sample_accounts_once(cli_db: Session, client, login) -> None:
+    assert cli.main(["seed-dev"]) == 0
+    assert cli.main(["seed-dev"]) == 0  # chạy lại không tạo trùng
+
+    users = cli_db.scalars(select(User).order_by(User.id)).all()
+    assert [(u.username, u.system_role) for u in users] == [
+        ("admin", "admin"),
+        ("root1", "root"),
+        ("sub1", "sub"),
+        ("sub2", "sub"),
+    ]
+    for username, password, _, _ in cli.DEV_ACCOUNTS:
+        login(username, password)
+
+
+def test_seed_dev_refuses_in_production(cli_db: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        cli, "get_settings", lambda: Settings(environment="production", jwt_secret="x" * 40)
+    )
+
+    assert cli.main(["seed-dev"]) == 1
     assert cli_db.scalars(select(User)).all() == []

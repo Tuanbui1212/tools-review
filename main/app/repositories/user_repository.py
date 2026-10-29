@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 
 from app.models.user import User
 from app.repositories.base import BaseRepository
@@ -55,8 +55,59 @@ class UserRepository(BaseRepository[User]):
         items = self.db.scalars(stmt.order_by(User.id).offset(offset).limit(limit)).all()
         return items, total
 
+    def get_stats(
+        self,
+        *,
+        visible_roles: set[str] | None,
+        include_id: int | None,
+    ) -> tuple[int, int, int]:
+        """Trả về (total, active, locked) theo đúng quyền mà actor được xem."""
+        stmt = select(
+            func.count(User.id).label("total"),
+            func.count(case((User.status == "active", User.id))).label("active"),
+            func.count(case((User.status == "locked", User.id))).label("locked"),
+        )
+        if visible_roles is not None:
+            condition = User.system_role.in_(visible_roles)
+            if include_id is not None:
+                condition = or_(condition, User.id == include_id)
+            stmt = stmt.where(condition)
+        row = self.db.execute(stmt).one()
+        return row.total or 0, row.active or 0, row.locked or 0
+
     def count_active_admins(self, exclude_id: int | None = None) -> int:
         stmt = select(func.count()).where(User.system_role == "admin", User.status == "active")
         if exclude_id is not None:
             stmt = stmt.where(User.id != exclude_id)
         return self.db.scalar(stmt) or 0
+
+    def search_candidates_for_project(
+        self,
+        project_id: int,
+        query: str | None,
+        offset: int,
+        limit: int,
+    ) -> tuple[Sequence[User], int]:
+        from app.models.project import ProjectMember
+
+        member_subquery = select(ProjectMember.user_id).where(
+            ProjectMember.project_id == project_id
+        )
+        stmt = select(User).where(
+            User.status == "active",
+            User.id.not_in(member_subquery),
+        )
+        if query and query.strip():
+            pattern = f"%{query.strip()}%"
+            stmt = stmt.where(
+                or_(
+                    User.username.ilike(pattern),
+                    User.email.ilike(pattern),
+                    User.display_name.ilike(pattern),
+                )
+            )
+        total = self.db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+        items = (
+            self.db.scalars(stmt.order_by(User.username.asc()).offset(offset).limit(limit)).all()
+        )
+        return items, total

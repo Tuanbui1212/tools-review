@@ -8,7 +8,7 @@
 |---|---|---|---|
 | **Main** | `main/` | FastAPI | Main server, cùng PostgreSQL, Redis, MinIO |
 | **Worker** | `worker/` | FastAPI (health) + Celery | **Server riêng**, không chạy trên Main (D045) |
-| **Engine** | `client/app/engine/` | Python | Máy người dùng (M04) |
+| **Engine** | `client/app/engine/` | Python | Máy người dùng (M03) |
 | **Web / App UI** | `client/web/`, `client/app/ui/` | React + TS | Trình duyệt / App |
 
 Mỗi service có `pyproject.toml` / `package.json`, `Dockerfile`, `docker-compose.yml`, test riêng.
@@ -17,7 +17,7 @@ Mỗi service có `pyproject.toml` / `package.json`, `Dockerfile`, `docker-compo
 
 - **Main → Worker**: Main đẩy task vào Redis **theo tên** (ví dụ `system.ping`), không import code của worker. Tên task là hợp đồng giữa hai bên.
 - **Worker → Main**: worker **không truy cập DB của Main**. Cần dữ liệu hay báo kết quả thì gọi API của Main. File thì đọc/ghi qua MinIO.
-- **Engine → Main**: qua API + WebSocket (M05).
+- **Engine → Main**: qua API + WebSocket (M04).
 
 ## Backend: kiến trúc layer (D044)
 

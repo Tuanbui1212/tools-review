@@ -34,9 +34,10 @@ class UserService:
 
     def list_users(
         self, actor: User, filters: UserFilters, page: PageParams
-    ) -> tuple[Sequence[User], int]:
-        return self.users.search(
-            visible_roles=UserPolicy.visible_roles(actor),
+    ) -> tuple[Sequence[User], int, tuple[int, int, int]]:
+        visible_roles = UserPolicy.visible_roles(actor)
+        items, total = self.users.search(
+            visible_roles=visible_roles,
             include_id=actor.id,
             system_role=filters.system_role,
             status=filters.status,
@@ -44,6 +45,8 @@ class UserService:
             offset=page.offset,
             limit=page.page_size,
         )
+        stats = self.users.get_stats(visible_roles=visible_roles, include_id=actor.id)
+        return items, total, stats
 
     def get_user(self, actor: User, user_id: int) -> User:
         return self._get_visible(actor, user_id)

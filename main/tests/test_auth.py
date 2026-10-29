@@ -120,22 +120,71 @@ def test_a8_change_password(client, make_user, login) -> None:
     assert _login_raw(client, "frank", "new-password-1").status_code == 200
 
 
-def test_a17_single_device_new_login_kicks_previous(client, make_user, login) -> None:
-    make_user("henry")
-    device_a = login("henry")
-    device_b = login("henry")
-
-    kicked = client.get("/api/v1/auth/me", headers=auth(device_a))
-    assert kicked.status_code == 401
-    assert kicked.json()["error"]["code"] == "session_replaced"
-    refreshed = _refresh(client, device_a["refresh_token"])
+def _assert_kicked(client: TestClient, tokens: dict) -> None:
+    me = client.get("/api/v1/auth/me", headers=auth(tokens))
+    assert me.status_code == 401
+    assert me.json()["error"]["code"] == "session_replaced"
+    refreshed = _refresh(client, tokens["refresh_token"])
     assert refreshed.status_code == 401
     assert refreshed.json()["error"]["code"] == "session_replaced"
 
-    assert client.get("/api/v1/auth/me", headers=auth(device_b)).status_code == 200
-    # Refresh không tính là đăng nhập mới: thiết bị B vẫn giữ phiên sau khi refresh.
-    rotated = _refresh(client, device_b["refresh_token"]).json()
-    assert client.get("/api/v1/auth/me", headers=auth(rotated)).status_code == 200
+
+def _assert_alive(client: TestClient, tokens: dict) -> None:
+    assert client.get("/api/v1/auth/me", headers=auth(tokens)).status_code == 200
+
+
+def test_a17_one_session_per_client_type(client, make_user, login) -> None:
+    make_user("henry")
+    web_a = login("henry", kind="web")
+    app_a = login("henry", kind="app")
+
+    # Web và App không đá nhau.
+    _assert_alive(client, web_a)
+    _assert_alive(client, app_a)
+
+    # Web đăng nhập ở máy khác → Web cũ bị đá, App vẫn chạy.
+    web_b = login("henry", kind="web")
+    _assert_kicked(client, web_a)
+    _assert_alive(client, web_b)
+    _assert_alive(client, app_a)
+
+    # App đăng nhập ở máy khác → App cũ bị đá, Web vẫn chạy.
+    app_b = login("henry", kind="app")
+    _assert_kicked(client, app_a)
+    _assert_alive(client, app_b)
+    _assert_alive(client, web_b)
+
+    # Refresh không tính là đăng nhập mới.
+    rotated = _refresh(client, web_b["refresh_token"]).json()
+    _assert_alive(client, rotated)
+    _assert_alive(client, app_b)
+
+
+def test_logout_only_ends_that_client(client, make_user, login) -> None:
+    make_user("ivy")
+    web = login("ivy", kind="web")
+    app = login("ivy", kind="app")
+
+    client.post(
+        "/api/v1/auth/logout", json={"refresh_token": web["refresh_token"]}, headers=auth(web)
+    )
+
+    assert client.get("/api/v1/auth/me", headers=auth(web)).status_code == 401
+    _assert_alive(client, app)
+
+
+def test_password_change_ends_every_client(client, make_user, login) -> None:
+    make_user("jack")
+    web = login("jack", kind="web")
+    app = login("jack", kind="app")
+
+    client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": DEFAULT_PASSWORD, "new_password": "new-password-2"},
+        headers=auth(web),
+    )
+
+    assert client.get("/api/v1/auth/me", headers=auth(app)).status_code == 401
 
 
 def test_a16_secrets_not_stored_in_plain_text(

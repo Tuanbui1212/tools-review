@@ -72,7 +72,12 @@ def db_engine(alembic_config: Config) -> Iterator[Engine]:
 @pytest.fixture
 def db_session(db_engine: Engine) -> Iterator[Session]:
     with db_engine.begin() as conn:
-        conn.execute(text("TRUNCATE refresh_tokens, users RESTART IDENTITY CASCADE"))
+        conn.execute(
+            text(
+                "TRUNCATE project_invitations, project_members, projects, "
+                "refresh_tokens, users RESTART IDENTITY CASCADE"
+            )
+        )
     with Session(db_engine, expire_on_commit=False) as session:
         yield session
 
@@ -100,7 +105,8 @@ def make_user(db_session: Session) -> Callable[..., User]:
             system_role=role,
             status=status,
             failed_login_count=0,
-            session_version=0,
+            session_version_web=0,
+            session_version_app=0,
         )
         db_session.add(user)
         db_session.commit()
@@ -111,9 +117,10 @@ def make_user(db_session: Session) -> Callable[..., User]:
 
 @pytest.fixture
 def login(client: TestClient) -> Callable[..., dict]:
-    def _login(identifier: str, password: str = DEFAULT_PASSWORD) -> dict:
+    def _login(identifier: str, password: str = DEFAULT_PASSWORD, kind: str = "web") -> dict:
         response = client.post(
-            "/api/v1/auth/login", json={"identifier": identifier, "password": password}
+            "/api/v1/auth/login",
+            json={"identifier": identifier, "password": password, "client": kind},
         )
         assert response.status_code == 200, response.text
         return response.json()

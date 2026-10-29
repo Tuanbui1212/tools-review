@@ -17,7 +17,7 @@ from app.models.user import User
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import TokenPair
-from app.services.session_policy import REVOKED_ERRORS, end_all_sessions
+from app.services.session_policy import REVOKED_ERRORS, end_all_sessions, end_client_session
 
 _INVALID_CREDENTIALS = ("invalid_credentials", "Sai tên đăng nhập hoặc mật khẩu")
 
@@ -60,8 +60,8 @@ class AuthService:
         user.failed_login_count = 0
         user.login_locked_until = None
         user.last_login_at = now
-        # Đăng nhập mới đá thiết bị đang đăng nhập trước đó ra (D049).
-        end_all_sessions(user, self.tokens, now, "new_login")
+        # Đăng nhập mới đá thiết bị cùng loại client (web / app) đang đăng nhập ra (D053).
+        end_client_session(user, self.tokens, client, now, "new_login")
         pair, _ = self._issue_tokens(user, client, device_name, now)
         self.db.commit()
         return pair
@@ -101,7 +101,7 @@ class AuthService:
     def logout(self, user: User, raw_token: str) -> None:
         token = self.tokens.get_by_hash(hash_token(raw_token))
         if token is not None and token.user_id == user.id and token.revoked_at is None:
-            end_all_sessions(user, self.tokens, datetime.now(UTC), "logout")
+            end_client_session(user, self.tokens, token.client, datetime.now(UTC), "logout")
             self.db.commit()
 
     def change_password(
@@ -136,7 +136,9 @@ class AuthService:
             )
         )
         pair = TokenPair(
-            access_token=create_access_token(user.id, user.system_role, user.session_version, now),
+            access_token=create_access_token(
+                user.id, user.system_role, client, user.session_version_for(client), now
+            ),
             refresh_token=raw,
             expires_in=settings.access_token_minutes * 60,
         )

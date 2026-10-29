@@ -6,3 +6,4 @@ Những thiết kế dùng chung cho nhiều module. Chi tiết của từng cô
 |---|---|
 | [architecture/](architecture/) | Kiến trúc App / Web / backend, pipeline tổng thể, cổng duyệt, công nghệ |
 | [database/](database/) | Thiết kế database PostgreSQL |
+| [ui/design-system.md](ui/design-system.md) | Hệ thống thiết kế giao diện "Studio làm phim" |

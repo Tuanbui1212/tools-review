@@ -49,7 +49,7 @@ UQ: (`chapter_id`, `version`). Lưu JSONB vì App mở và sửa nguyên khối 
 | machine_name | TEXT | máy nào render |
 | started_at, finished_at | TIMESTAMPTZ | |
 
-## `compilations` — thành phẩm gộp ([../../03-modules/M13-video-merge/pipeline-merge.md](../../03-modules/M13-video-merge/pipeline-merge.md))
+## `compilations` — thành phẩm gộp ([../../03-modules/M12-video-merge/pipeline-merge.md](../../03-modules/M12-video-merge/pipeline-merge.md))
 
 | Cột | Kiểu | Ghi chú |
 |---|---|---|

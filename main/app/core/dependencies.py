@@ -11,12 +11,19 @@ from app.core.errors import ForbiddenError, UnauthorizedError
 from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models.user import User
+from app.repositories.chapter_page_repository import ChapterPageRepository
+from app.repositories.chapter_repository import ChapterRepository
+from app.repositories.project_invitation_repository import ProjectInvitationRepository
+from app.repositories.project_member_repository import ProjectMemberRepository
+from app.repositories.project_repository import ProjectRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.system_repository import SystemRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.common import MAX_PAGE_SIZE, PageParams
 from app.services.auth_service import AuthService
+from app.services.chapter_service import ChapterService
 from app.services.health_service import HealthService
+from app.services.project_service import ProjectService
 from app.services.user_service import UserService
 
 DbSession = Annotated[Session, Depends(get_db)]
@@ -35,7 +42,7 @@ def get_current_user(
     # Kiểm tra mỗi request: user bị khoá thì access token còn hạn cũng bị từ chối.
     if user is None or user.status != "active":
         raise UnauthorizedError("invalid_token", "Token không hợp lệ hoặc đã hết hạn")
-    if claims.session_version != user.session_version:
+    if claims.session_version != user.session_version_for(claims.client):
         raise UnauthorizedError(
             "session_replaced", "Phiên đăng nhập đã kết thúc hoặc tài khoản đăng nhập ở nơi khác"
         )
@@ -43,6 +50,28 @@ def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def get_user_from_header_or_query(
+    db: DbSession,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+    token: Annotated[str | None, Query()] = None,
+) -> User:
+    raw_token = credentials.credentials if credentials else token
+    if not raw_token:
+        raise UnauthorizedError("not_authenticated", "Chưa đăng nhập")
+    claims = decode_access_token(raw_token)
+    user = UserRepository(db).get(claims.user_id)
+    if user is None or user.status != "active":
+        raise UnauthorizedError("invalid_token", "Token không hợp lệ hoặc đã hết hạn")
+    if claims.session_version != user.session_version_for(claims.client):
+        raise UnauthorizedError(
+            "session_replaced", "Phiên đăng nhập đã kết thúc hoặc tài khoản đăng nhập ở nơi khác"
+        )
+    return user
+
+
+CurrentUserOrQuery = Annotated[User, Depends(get_user_from_header_or_query)]
 
 
 def require_roles(*roles: str) -> Callable[[User], User]:
@@ -71,3 +100,23 @@ def get_auth_service(db: DbSession) -> AuthService:
 
 def get_user_service(db: DbSession) -> UserService:
     return UserService(db, UserRepository(db), RefreshTokenRepository(db))
+
+
+def get_project_service(db: DbSession) -> ProjectService:
+    return ProjectService(
+        db,
+        ProjectRepository(db),
+        ProjectMemberRepository(db),
+        ProjectInvitationRepository(db),
+        UserRepository(db),
+    )
+
+
+def get_chapter_service(db: DbSession) -> ChapterService:
+    return ChapterService(
+        db,
+        ChapterRepository(db),
+        ChapterPageRepository(db),
+        ProjectRepository(db),
+        ProjectMemberRepository(db),
+    )

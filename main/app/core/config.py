@@ -20,7 +20,9 @@ class Settings(BaseSettings):
     s3_secret_key: str = "crt-minio-secret"
     s3_bucket: str = "crt-files"
 
-    cors_origins: list[str] = ["http://localhost:5173", "http://localhost:5174"]
+    storage_dir: str = "storage"
+
+    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:3001"]
 
     jwt_secret: str = DEV_JWT_SECRET
     access_token_minutes: int = 15

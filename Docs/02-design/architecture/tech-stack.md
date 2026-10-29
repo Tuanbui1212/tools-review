@@ -38,7 +38,7 @@ Engine trong App cũng viết bằng Python, nên **server và engine chung mộ
 | Phần | Công nghệ |
 |---|---|
 | DB | PostgreSQL 17 |
-| Vector | pgvector (embedding nhân vật, dùng từ M09) |
+| Vector | pgvector (embedding nhân vật, dùng từ M08) |
 | Redis | Hàng đợi Celery, đẩy tiến độ qua WebSocket, cache |
 
 ### Frontend — React
@@ -50,8 +50,8 @@ Engine trong App cũng viết bằng Python, nên **server và engine chung mộ
 | Thư viện UI | Ant Design | Mạnh về bảng, form, phù hợp quản lý |
 | Gọi API | TanStack Query | Cache, tự tải lại, xử lý loading/lỗi |
 | Router | React Router | |
-| Vẽ trên ảnh | Konva (từ M07) | Khung panel, khung mặt |
-| Đóng gói App | Electron (M15) | Giai đoạn đầu App chạy dạng web local (D022) |
+| Vẽ trên ảnh | Konva (từ M06) | Khung panel, khung mặt |
+| Đóng gói App | Electron (M14) | Giai đoạn đầu App chạy dạng web local (D022) |
 | Quản lý package | pnpm (workspace) | Quản lý chung `web`, `app/ui`, `shared` |
 | Node.js | bản LTS | |
 
@@ -62,9 +62,9 @@ Engine trong App cũng viết bằng Python, nên **server và engine chung mộ
 | AI local | PyTorch + CUDA (GPU NVIDIA, D020) |
 | Xử lý ảnh | OpenCV, Pillow |
 | Video / audio | ffmpeg |
-| Hàng đợi việc local | Hàng đợi nhẹ lưu bằng SQLite, chạy trong engine (không dùng Celery, D036) — chốt ở M04 |
+| Hàng đợi việc local | Hàng đợi nhẹ lưu bằng SQLite, chạy trong engine (không dùng Celery, D036) — chốt ở M03 |
 | File local | Thư mục làm việc theo project/chapter + SQLite ghi trạng thái file (D038) |
-| Model cụ thể | Chọn khi làm M07–M11, sau khi thử trên chapter mẫu |
+| Model cụ thể | Chọn khi làm M06–M10, sau khi thử trên chapter mẫu |
 
 ## Môi trường & công cụ chung
 

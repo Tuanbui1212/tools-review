@@ -57,3 +57,17 @@ class UserFilters(BaseModel):
     system_role: SystemRole | None = None
     status: UserStatus | None = None
     q: str | None = Field(default=None, max_length=100)
+
+
+class UserStats(BaseModel):
+    total: int
+    active: int
+    locked: int
+
+
+class UserPage(BaseModel):
+    items: list[UserRead]
+    page: int
+    page_size: int
+    total: int
+    stats: UserStats

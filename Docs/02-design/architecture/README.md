@@ -17,3 +17,4 @@
 | [data-sync.md](data-sync.md) | Đồng bộ dữ liệu giữa máy người dùng và server |
 | [ai-providers.md](ai-providers.md) | Model AI chạy local / API trả phí |
 | [deployment.md](deployment.md) | Triển khai |
+| [ports.md](ports.md) | **Danh sách port** của mọi service |

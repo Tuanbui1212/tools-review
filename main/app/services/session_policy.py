@@ -1,4 +1,4 @@
-"""Mỗi tài khoản chỉ có 1 phiên đăng nhập (D049)."""
+"""Mỗi tài khoản: 1 phiên Web + 1 phiên App; Web và App không đá nhau (D049, D053)."""
 
 from datetime import datetime
 
@@ -16,9 +16,17 @@ REVOKED_ERRORS: dict[str, tuple[str, str]] = {
 }
 
 
+def end_client_session(
+    user: User, tokens: RefreshTokenRepository, client: str, now: datetime, reason: str
+) -> None:
+    """Đá phiên của một loại client (web hoặc app) ra ngay; phiên loại còn lại giữ nguyên."""
+    user.bump_session(client)
+    tokens.revoke_all_for_user(user.id, now, reason, client=client)
+
+
 def end_all_sessions(
     user: User, tokens: RefreshTokenRepository, now: datetime, reason: str
 ) -> None:
-    """Đá mọi phiên của user ra ngay: huỷ refresh token và làm access token cũ hết hiệu lực."""
-    user.session_version += 1
+    """Đá mọi phiên của user ra ngay (đổi / đặt lại mật khẩu, bị khoá, token bị lộ)."""
+    user.bump_session()
     tokens.revoke_all_for_user(user.id, now, reason)

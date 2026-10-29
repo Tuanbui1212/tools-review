@@ -35,17 +35,23 @@ def verify_dummy_password(password: str) -> None:
 @dataclass(frozen=True)
 class AccessClaims:
     user_id: int
+    client: str
     session_version: int
 
 
 def create_access_token(
-    user_id: int, system_role: str, session_version: int, now: datetime | None = None
+    user_id: int,
+    system_role: str,
+    client: str,
+    session_version: int,
+    now: datetime | None = None,
 ) -> str:
     settings = get_settings()
     issued_at = now or datetime.now(UTC)
     payload = {
         "sub": str(user_id),
         "role": system_role,
+        "cl": client,
         "sv": session_version,
         "type": "access",
         "iat": issued_at,
@@ -61,13 +67,17 @@ def decode_access_token(token: str) -> AccessClaims:
             token,
             get_settings().jwt_secret,
             algorithms=[JWT_ALGORITHM],
-            options={"require": ["exp", "sub", "sv"]},
+            options={"require": ["exp", "sub", "cl", "sv"]},
         )
     except jwt.PyJWTError as exc:
         raise UnauthorizedError("invalid_token", "Token không hợp lệ hoặc đã hết hạn") from exc
     if payload.get("type") != "access":
         raise UnauthorizedError("invalid_token", "Token không hợp lệ hoặc đã hết hạn")
-    return AccessClaims(user_id=int(payload["sub"]), session_version=int(payload["sv"]))
+    return AccessClaims(
+        user_id=int(payload["sub"]),
+        client=str(payload["cl"]),
+        session_version=int(payload["sv"]),
+    )
 
 
 def new_refresh_token() -> str:

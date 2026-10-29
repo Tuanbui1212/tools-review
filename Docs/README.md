@@ -8,10 +8,8 @@ Nơi **bàn luận, lên kế hoạch và chốt** mọi thứ trước khi code
 tools/
 ├── Docs/          # Bàn luận, kế hoạch, đặc tả
 ├── main/          # Main: bot tổng điều phối + API (Python, PostgreSQL)
-└── client/
-    ├── app/       # App Windows: chạy pipeline, chỉnh sửa
-    ├── web/       # Web: quản lý, xem tiến độ
-    └── shared/    # Code giao diện dùng chung
+├── web/           # Web: giao diện hệ thống (React, TypeScript)
+└── worker/        # Worker: xử lý tác vụ nền (Celery)
 ```
 
 ## Docs — đọc theo thứ tự quy trình

@@ -26,6 +26,17 @@ class User(IdMixin, TimestampMixin, Base):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     failed_login_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     login_locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    # Tăng mỗi lần đăng nhập / đổi mật khẩu / bị khoá. Access token mang số này; lệch là bị
-    # từ chối ngay → mỗi tài khoản chỉ có 1 phiên đăng nhập (D049).
-    session_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Mỗi loại client (web / app) chỉ có 1 phiên (D049, D053). Đăng nhập lại ở cùng loại client
+    # thì số này tăng; access token mang số này, lệch là bị từ chối ngay.
+    session_version_web: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    session_version_app: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+
+    def session_version_for(self, client: str) -> int:
+        return self.session_version_app if client == "app" else self.session_version_web
+
+    def bump_session(self, client: str | None = None) -> None:
+        """client=None: kết thúc phiên ở mọi loại client."""
+        if client in (None, "web"):
+            self.session_version_web += 1
+        if client in (None, "app"):
+            self.session_version_app += 1

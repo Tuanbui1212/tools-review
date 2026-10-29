@@ -4,8 +4,16 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.core.dependencies import CurrentUser, get_page_params, get_user_service, require_roles
 from app.models.user import User
-from app.schemas.common import Page, PageParams
-from app.schemas.user import ResetPasswordRequest, UserCreate, UserFilters, UserRead, UserUpdate
+from app.schemas.common import PageParams
+from app.schemas.user import (
+    ResetPasswordRequest,
+    UserCreate,
+    UserFilters,
+    UserPage,
+    UserRead,
+    UserStats,
+    UserUpdate,
+)
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -14,19 +22,20 @@ UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 ManagerUser = Annotated[User, Depends(require_roles("admin", "root"))]
 
 
-@router.get("", response_model=Page[UserRead])
+@router.get("", response_model=UserPage)
 def list_users(
     actor: ManagerUser,
     service: UserServiceDep,
     page: Annotated[PageParams, Depends(get_page_params)],
     filters: Annotated[UserFilters, Query()],
-) -> Page[UserRead]:
-    items, total = service.list_users(actor, filters, page)
-    return Page[UserRead](
+) -> UserPage:
+    items, total, (stat_total, stat_active, stat_locked) = service.list_users(actor, filters, page)
+    return UserPage(
         items=[UserRead.model_validate(user) for user in items],
         page=page.page,
         page_size=page.page_size,
         total=total,
+        stats=UserStats(total=stat_total, active=stat_active, locked=stat_locked),
     )
 
 

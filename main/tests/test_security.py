@@ -23,19 +23,25 @@ def test_password_hash_roundtrip() -> None:
 
 
 def test_access_token_roundtrip() -> None:
-    claims = decode_access_token(create_access_token(42, "sub", 3))
-    assert (claims.user_id, claims.session_version) == (42, 3)
+    claims = decode_access_token(create_access_token(42, "sub", "app", 3))
+    assert (claims.user_id, claims.client, claims.session_version) == (42, "app", 3)
 
 
 def test_expired_access_token_rejected() -> None:
     long_ago = datetime.now(UTC) - timedelta(hours=1)
     with pytest.raises(UnauthorizedError):
-        decode_access_token(create_access_token(42, "sub", 0, now=long_ago))
+        decode_access_token(create_access_token(42, "sub", "web", 0, now=long_ago))
 
 
 def test_token_signed_with_other_secret_rejected() -> None:
     forged = jwt.encode(
-        {"sub": "1", "sv": 0, "type": "access", "exp": datetime.now(UTC) + timedelta(minutes=5)},
+        {
+            "sub": "1",
+            "cl": "web",
+            "sv": 0,
+            "type": "access",
+            "exp": datetime.now(UTC) + timedelta(minutes=5),
+        },
         "another-secret-that-is-long-enough-1234",
         algorithm="HS256",
     )
