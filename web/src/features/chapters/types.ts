@@ -33,6 +33,7 @@ export interface ChapterCreatePayload {
 }
 
 export interface ChapterUpdatePayload {
+  chapter_number?: number;
   title?: string | null;
   status?: ChapterStatus;
 }

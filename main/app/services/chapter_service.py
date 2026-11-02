@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -5,13 +6,15 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+logger = logging.getLogger(__name__)
+
 from app.models.chapter import Chapter, ChapterPage
 from app.models.user import User
 from app.repositories.chapter_page_repository import ChapterPageRepository
 from app.repositories.chapter_repository import ChapterRepository
 from app.repositories.project_member_repository import ProjectMemberRepository
 from app.repositories.project_repository import ProjectRepository
-from app.schemas.chapter import ChapterCreate, ChapterPageRead, ChapterRead, ChapterUpdate
+from app.schemas.chapter import ChapterCreate, ChapterPageRead, ChapterUpdate
 from app.services.image_ingest_service import ImageIngestService
 from app.services.project_policy import ProjectPolicy
 
@@ -104,12 +107,27 @@ class ChapterService:
                 detail=f"Tập truyện số {data.chapter_number} đã tồn tại trong dự án",
             )
 
+        # Tạo sẵn cây thư mục lưu trữ phù hợp với dự án (Google Drive hoặc Local)
+        storage_dir = None
+        try:
+            if self.ingest_service.gdrive_client:
+                folder_id = self.ingest_service.gdrive_client.get_or_create_chapter_folder(
+                    project_id, data.chapter_number
+                )
+                storage_dir = f"gdrive:{folder_id}"
+            else:
+                target_dir = self.ingest_service.get_chapter_storage_dir(project_id, data.chapter_number)
+                storage_dir = str(target_dir)
+        except Exception as e:
+            logger.warning(f"Không thể khởi tạo trước thư mục chapter: {e}")
+
         chapter = Chapter(
             project_id=project_id,
             chapter_number=data.chapter_number,
             title=data.title,
             status="draft",
             total_pages=0,
+            storage_dir=storage_dir,
             created_by_id=actor.id,
         )
         self.chapter_repo.add(chapter)
@@ -124,6 +142,33 @@ class ChapterService:
         chapter, (project, membership) = self._get_chapter_and_check_view(actor, chapter_id)
         self._check_edit_permission(actor, project, membership)
 
+        if data.chapter_number is not None and data.chapter_number != chapter.chapter_number:
+            # Kiểm tra trùng chapter_number trong dự án
+            existing = self.chapter_repo.get_by_project_and_number(chapter.project_id, data.chapter_number)
+            if existing and existing.id != chapter.id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Tập truyện số {data.chapter_number} đã tồn tại trong dự án",
+                )
+
+            # Đổi tên thư mục tương ứng trên Google Drive nếu có
+            if self.ingest_service.gdrive_client:
+                try:
+                    if chapter.storage_dir and chapter.storage_dir.startswith("gdrive:"):
+                        folder_id = chapter.storage_dir.removeprefix("gdrive:")
+                        self.ingest_service.gdrive_client.rename_folder(
+                            folder_id, f"Chapter_{data.chapter_number}"
+                        )
+                    else:
+                        folder_id = self.ingest_service.gdrive_client.get_or_create_chapter_folder(
+                            chapter.project_id, data.chapter_number
+                        )
+                        chapter.storage_dir = f"gdrive:{folder_id}"
+                except Exception as e:
+                    logger.warning(f"Lỗi khi đổi tên thư mục Google Drive: {e}")
+
+            chapter.chapter_number = data.chapter_number
+
         if data.title is not None:
             chapter.title = data.title
         if data.status is not None:
@@ -136,7 +181,14 @@ class ChapterService:
     def delete_chapter(self, actor: User, chapter_id: int) -> None:
         chapter, (project, membership) = self._get_chapter_and_check_view(actor, chapter_id)
         self._check_delete_permission(actor, project, membership)
+
+        pages = self.page_repo.list_by_chapter(chapter.id)
+        for p in pages:
+            self.ingest_service.delete_file(p.file_path)
+
         self.chapter_repo.soft_delete(chapter)
+        self.ingest_service.delete_chapter_storage(chapter.project_id, chapter.id)
+
 
     def upload_images(
         self,
@@ -246,7 +298,11 @@ class ChapterService:
         if not page or page.chapter_id != chapter.id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy trang ảnh")
 
-        p = Path(page.file_path)
-        if not p.exists() or not p.is_file():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tệp ảnh vật lý không tồn tại trên máy chủ")
-        return p
+        try:
+            return self.ingest_service.get_local_file_path(page.file_path)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Tệp ảnh không tồn tại hoặc lỗi tải từ storage: {e}",
+            ) from e
+

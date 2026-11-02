@@ -9,3 +9,4 @@ export * from "./components/InvitationsModal";
 export * from "./components/UserSelectCombobox";
 export * from "./pages/ProjectsPage";
 export * from "./pages/ProjectDetailPage";
+export * from "./pages/ProjectFormPage";

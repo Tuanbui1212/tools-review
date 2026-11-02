@@ -268,3 +268,44 @@ def test_reorder_and_delete_pages(client, make_user, login) -> None:
     chap = client.get(f"/api/v1/chapters/{chapter_id}", headers=user).json()
     assert chap["total_pages"] == 0
     assert chap["status"] == "draft"
+
+
+def test_update_chapter_number_and_conflict(client, make_user, login) -> None:
+    make_user("owner_update_chap")
+    owner = auth(login("owner_update_chap"))
+
+    p_res = client.post("/api/v1/projects", json={"name": "Project Update Chap"}, headers=owner)
+    project_id = p_res.json()["id"]
+
+    c1 = client.post(
+        f"/api/v1/projects/{project_id}/chapters",
+        json={"chapter_number": 1, "title": "Chap 1"},
+        headers=owner,
+    ).json()
+
+    c2 = client.post(
+        f"/api/v1/projects/{project_id}/chapters",
+        json={"chapter_number": 2, "title": "Chap 2"},
+        headers=owner,
+    ).json()
+
+    # Đổi chapter 1 thành 3 (thành công)
+    up_res = client.patch(
+        f"/api/v1/chapters/{c1['id']}",
+        json={"chapter_number": 3, "title": "Chap 3 Modified"},
+        headers=owner,
+    )
+    assert up_res.status_code == 200
+    assert up_res.json()["chapter_number"] == 3
+    assert up_res.json()["title"] == "Chap 3 Modified"
+
+    # Đổi chapter 2 thành 3 (đã bị trùng với c1 hiện tại) -> 409 Conflict
+    conflict_res = client.patch(
+        f"/api/v1/chapters/{c2['id']}",
+        json={"chapter_number": 3},
+        headers=owner,
+    )
+    assert conflict_res.status_code == 409
+    assert "đã tồn tại" in conflict_res.json()["error"]["message"]
+
+

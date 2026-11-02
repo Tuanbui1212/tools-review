@@ -1,11 +1,8 @@
 import {
-  LockIcon,
   PageHeader,
   PlusIcon,
   ROLE_LABELS,
   SearchIcon,
-  StatCard,
-  UserCheckIcon,
   UsersIcon,
   errorMessage,
   useAuth,
@@ -23,13 +20,12 @@ import { UserTable } from "../components/UserTable";
 import { useSetUserLocked, useUserList } from "../hooks/useUsers";
 import { creatableRoles } from "../lib/permissions";
 
-const DEFAULT_PAGE_SIZE = 20;
+const PAGE_SIZE = 24;
 
 export function UsersPage() {
   const { user: actor } = useAuth();
   const { message } = App.useApp();
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [role, setRole] = useState<SystemRole>();
   const [status, setStatus] = useState<UserStatus>();
   const [searchInput, setSearchInput] = useState("");
@@ -45,25 +41,40 @@ export function UsersPage() {
 
   const list = useUserList({
     page,
-    page_size: pageSize,
+    page_size: PAGE_SIZE,
     system_role: role,
     status,
     q: debouncedQuery || undefined,
   });
-  const stats = list.data?.stats;
+
+  // Tự động lùi trang nếu số trang tối đa giảm xuống (ví dụ xoá/khoá user ở trang cuối)
+  useEffect(() => {
+    const total = list.data?.total ?? 0;
+    if (total > 0) {
+      const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      if (page > maxPage) {
+        setPage(maxPage);
+      }
+    } else if (page > 1) {
+      setPage(1);
+    }
+  }, [list.data?.total, page]);
+
   const setLocked = useSetUserLocked();
 
   if (!actor) return null;
   const roles = creatableRoles(actor);
-  // Root chỉ thấy sub và chính mình (root), nên chỉ lọc được 2 quyền này.
   const filterRoles: SystemRole[] =
     actor.system_role === "admin" ? ["admin", "root", "sub"] : ["root", "sub"];
-  const roleOptions = filterRoles.map((r) => ({ value: r, label: ROLE_LABELS[r] }));
+  const roleOptions = [
+    { value: "", label: "Tất cả vai trò" },
+    ...filterRoles.map((r) => ({ value: r, label: ROLE_LABELS[r] })),
+  ];
 
   const changeFilter =
-    <T,>(setter: (value: T) => void) =>
-    (value: T) => {
-      setter(value);
+    <T,>(setter: (value: T | undefined) => void) =>
+    (value: T | null | "") => {
+      setter(value ? (value as T) : undefined);
       setPage(1);
     };
 
@@ -103,23 +114,7 @@ export function UsersPage() {
         }
       />
 
-      <div className="crt-grid crt-stagger" style={{ marginBottom: 20 }}>
-        <StatCard icon={<UsersIcon size={20} />} label="Tổng user" value={stats?.total ?? "—"} />
-        <StatCard
-          icon={<UserCheckIcon size={20} />}
-          label="Đang hoạt động"
-          value={stats?.active ?? "—"}
-          tone="success"
-        />
-        <StatCard
-          icon={<LockIcon size={20} />}
-          label="Đã khoá"
-          value={stats?.locked ?? "—"}
-          tone="danger"
-        />
-      </div>
-
-      <section className="crt-card">
+      <section className="crt-card" style={{ marginTop: 16 }}>
         <div className="crt-toolbar">
           <Input
             allowClear
@@ -129,23 +124,22 @@ export function UsersPage() {
             style={{ width: 300 }}
             onChange={(event) => setSearchInput(event.target.value)}
           />
-          <Select<SystemRole>
+          <Select
             allowClear
-            placeholder="Tất cả quyền"
             style={{ width: 160 }}
             options={roleOptions}
-            value={role}
+            value={role ?? ""}
             onChange={changeFilter(setRole)}
           />
-          <Select<UserStatus>
+          <Select
             allowClear
-            placeholder="Tất cả trạng thái"
             style={{ width: 180 }}
             options={[
+              { value: "", label: "Tất cả trạng thái" },
               { value: "active", label: "Hoạt động" },
               { value: "locked", label: "Đã khoá" },
             ]}
-            value={status}
+            value={status ?? ""}
             onChange={changeFilter(setStatus)}
           />
         </div>
@@ -163,17 +157,21 @@ export function UsersPage() {
           actor={actor}
           users={list.data?.items ?? []}
           loading={list.isFetching}
-          pagination={{
-            current: page,
-            pageSize,
-            total: list.data?.total ?? 0,
-            showSizeChanger: true,
-            showTotal: (total) => `${total} user`,
-            onChange: (nextPage, nextSize) => {
-              setPage(nextSize === pageSize ? nextPage : 1);
-              setPageSize(nextSize);
-            },
-          }}
+          pagination={
+            (list.data?.total ?? 0) > PAGE_SIZE
+              ? {
+                  current: page,
+                  pageSize: PAGE_SIZE,
+                  total: list.data?.total ?? 0,
+                  showSizeChanger: false,
+                  hideOnSinglePage: true,
+                  showTotal: (total) => `Tổng ${total} user`,
+                  onChange: (nextPage) => {
+                    setPage(nextPage);
+                  },
+                }
+              : false
+          }
           onEdit={(user) => {
             setFormUser(user);
             setFormOpen(true);

@@ -8,6 +8,9 @@ import os
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
+# Đảm bảo pytest luôn dùng local storage để chạy nhanh và không gọi mạng Google Drive
+os.environ["STORAGE_BACKEND"] = "local"
+
 import pytest
 from alembic.config import Config
 from fastapi.testclient import TestClient
@@ -17,7 +20,10 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from alembic import command
+from app.core.config import get_settings
 from app.core.security import hash_password
+
+get_settings.cache_clear()
 from app.db.session import get_db
 from app.main import app
 from app.models.user import User

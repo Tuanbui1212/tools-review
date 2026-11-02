@@ -1,0 +1,29 @@
+# Worker AI Server: Tác vụ xử lý ảnh & AI (Cắt khung tranh, OCR bóc thoại, Nhận diện nhân vật)
+name: crt-worker-ai
+
+services:
+  worker-ai-api:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8102 --reload
+    environment:
+      WORKER_NAME: worker-ai-1
+      REDIS_URL: redis://${MAIN_HOST:-host.docker.internal}:6379/0
+      MAIN_API_URL: http://${MAIN_HOST:-host.docker.internal}:8000
+    volumes:
+      - ./app:/srv/worker-ai/app
+    ports:
+      - "8102:8102"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  worker-ai-celery:
+    build: .
+    command: celery -A app.tasks.celery_app worker -Q ai_queue -c 2 -n worker_ai@%h -l info
+    environment:
+      WORKER_NAME: worker-ai-1
+      REDIS_URL: redis://${MAIN_HOST:-host.docker.internal}:6379/0
+      MAIN_API_URL: http://${MAIN_HOST:-host.docker.internal}:8000
+    volumes:
+      - ./app:/srv/worker-ai/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

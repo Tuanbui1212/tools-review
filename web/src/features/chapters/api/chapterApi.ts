@@ -1,4 +1,5 @@
 import { http } from "@crt/shared";
+import { getAccessToken } from "../../../shared/features/auth";
 
 import type {
   Chapter,
@@ -35,6 +36,69 @@ export const chapterApi = {
       formData.append("files", file);
     }
     return http.post<ChapterPage[]>(`/v1/chapters/${chapterId}/upload-images`, formData);
+  },
+
+  uploadImagesWithProgress: (
+    chapterId: number,
+    files: File[],
+    onProgress?: (loaded: number, total: number, percent: number) => void,
+    signal?: AbortSignal,
+  ): Promise<ChapterPage[]> => {
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append("files", file);
+      }
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `/api/v1/chapters/${chapterId}/upload-images`);
+
+      const token = getAccessToken();
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      }
+
+      if (onProgress) {
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
+            onProgress(event.loaded, event.total, percent);
+          }
+        };
+      }
+
+      if (signal) {
+        signal.addEventListener("abort", () => {
+          xhr.abort();
+          reject(new DOMException("Upload bị hủy bởi người dùng", "AbortError"));
+        });
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText) as ChapterPage[];
+            if (onProgress) onProgress(1, 1, 100);
+            resolve(data);
+          } catch {
+            reject(new Error("Lỗi đọc dữ liệu phản hồi từ máy chủ"));
+          }
+        } else {
+          try {
+            const errJson = JSON.parse(xhr.responseText);
+            reject(new Error(errJson.detail || errJson.error?.message || `Lỗi tải ảnh: ${xhr.status}`));
+          } catch {
+            reject(new Error(`Lỗi tải ảnh lên máy chủ (${xhr.status})`));
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error("Lỗi kết nối mạng khi tải ảnh"));
+      };
+
+      xhr.send(formData);
+    });
   },
 
   uploadZip: (chapterId: number, file: File) => {

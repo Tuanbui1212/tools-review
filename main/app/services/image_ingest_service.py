@@ -1,16 +1,18 @@
+import concurrent.futures
 import hashlib
 import io
-import os
+import logging
 import re
 import shutil
 import zipfile
 from pathlib import Path
-from typing import BinaryIO
 
 from PIL import Image
 
 from app.core.config import get_settings
 from app.models.chapter import Chapter, ChapterPage
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_PIL_FORMATS = {"JPEG", "PNG", "WEBP"}
@@ -27,8 +29,30 @@ def natural_sort_key(s: str) -> list[int | str]:
 
 class ImageIngestService:
     def __init__(self, base_storage_dir: str | None = None) -> None:
-        self.base_dir = Path(base_storage_dir or get_settings().storage_dir).resolve()
+        self.settings = get_settings()
+        self.base_dir = Path(base_storage_dir or self.settings.storage_dir).resolve()
         self.base_dir.mkdir(parents=True, exist_ok=True)
+
+        self.gdrive_client = None
+        if (
+            self.settings.storage_backend == "google_drive"
+            and self.settings.google_drive_client_id
+            and self.settings.google_drive_client_secret
+            and self.settings.google_drive_refresh_token
+        ):
+            try:
+                from app.integrations.google_drive import GoogleDriveClient
+
+                self.gdrive_client = GoogleDriveClient(
+                    client_id=self.settings.google_drive_client_id,
+                    client_secret=self.settings.google_drive_client_secret,
+                    refresh_token=self.settings.google_drive_refresh_token,
+                    root_folder_id=self.settings.google_drive_root_folder_id,
+                    cache_dir=self.base_dir / "cache",
+                )
+                logger.info("Khởi tạo Google Drive storage client thành công")
+            except Exception as e:
+                logger.error(f"Không thể khởi tạo Google Drive client: {e}")
 
     def get_chapter_storage_dir(self, project_id: int, chapter_id: int) -> Path:
         p = self.base_dir / "projects" / str(project_id) / "chapters" / str(chapter_id) / "pages"
@@ -66,17 +90,32 @@ class ImageIngestService:
         current_max_page: int,
         existing_hashes: set[str],
     ) -> list[ChapterPage]:
-        """Xử lý danh sách các file ảnh tải lên trực tiếp."""
+        """Xử lý danh sách các file ảnh tải lên trực tiếp (lưu Google Drive hoặc Local)."""
         if len(raw_files) + chapter.total_pages > MAX_PAGES_PER_CHAPTER:
             raise ValueError(f"Chapter không thể vượt quá {MAX_PAGES_PER_CHAPTER} trang")
 
         # Sắp xếp tự nhiên theo tên file
         raw_files.sort(key=lambda x: natural_sort_key(x[0]))
 
-        target_dir = self.get_chapter_storage_dir(chapter.project_id, chapter.id)
-        chapter.storage_dir = str(target_dir)
+        gdrive_folder_id = None
+        target_dir = None
+        if self.gdrive_client:
+            if chapter.storage_dir and chapter.storage_dir.startswith("gdrive:"):
+                gdrive_folder_id = chapter.storage_dir.replace("gdrive:", "")
+            else:
+                gdrive_folder_id = self.gdrive_client.get_or_create_chapter_folder(
+                    chapter.project_id, chapter.chapter_number
+                )
+                chapter.storage_dir = f"gdrive:{gdrive_folder_id}"
+        else:
+            if chapter.storage_dir and not chapter.storage_dir.startswith("gdrive:"):
+                target_dir = Path(chapter.storage_dir)
+            else:
+                target_dir = self.get_chapter_storage_dir(chapter.project_id, chapter.chapter_number)
+                chapter.storage_dir = str(target_dir)
 
-        new_pages: list[ChapterPage] = []
+        # 1. Xác thực và chuẩn bị metadata cho toàn bộ danh sách ảnh trước
+        items_to_process: list[dict] = []
         page_idx = current_max_page + 1
 
         for original_filename, content in raw_files:
@@ -92,26 +131,59 @@ class ImageIngestService:
                 ext = ".jpg" if mime_type == "image/jpeg" else ".png"
 
             saved_filename = f"page_{page_idx:04d}_{file_hash[:8]}{ext}"
-            file_dest = target_dir / saved_filename
-
-            with open(file_dest, "wb") as f:
-                f.write(content)
-
-            page = ChapterPage(
-                chapter_id=chapter.id,
-                page_number=page_idx,
-                original_filename=original_filename,
-                file_path=str(file_dest),
-                file_size_bytes=len(content),
-                width=width,
-                height=height,
-                mime_type=mime_type,
-                file_hash=file_hash,
-                is_duplicate_hash=is_duplicate,
-            )
-            new_pages.append(page)
+            items_to_process.append({
+                "page_number": page_idx,
+                "original_filename": original_filename,
+                "content": content,
+                "saved_filename": saved_filename,
+                "mime_type": mime_type,
+                "width": width,
+                "height": height,
+                "file_hash": file_hash,
+                "is_duplicate": is_duplicate,
+            })
             page_idx += 1
 
+        # 2. Hàm lưu trữ cho một trang đơn lẻ
+        def _upload_single_page(item: dict) -> ChapterPage:
+            if self.gdrive_client and gdrive_folder_id:
+                gfile = self.gdrive_client.upload_file(
+                    content=item["content"],
+                    filename=item["saved_filename"],
+                    mime_type=item["mime_type"],
+                    parent_folder_id=gdrive_folder_id,
+                )
+                file_path_str = f"gdrive:{gfile['id']}"
+            else:
+                assert target_dir is not None
+                file_dest = target_dir / item["saved_filename"]
+                with open(file_dest, "wb") as f:
+                    f.write(item["content"])
+                file_path_str = str(file_dest)
+
+            return ChapterPage(
+                chapter_id=chapter.id,
+                page_number=item["page_number"],
+                original_filename=item["original_filename"],
+                file_path=file_path_str,
+                file_size_bytes=len(item["content"]),
+                width=item["width"],
+                height=item["height"],
+                mime_type=item["mime_type"],
+                file_hash=item["file_hash"],
+                is_duplicate_hash=item["is_duplicate"],
+            )
+
+        # 3. Đa luồng đẩy song song lên storage / Google Drive (tăng tốc gấp 5 - 8 lần)
+        max_workers = min(8, max(1, len(items_to_process)))
+        if max_workers > 1:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                new_pages = list(executor.map(_upload_single_page, items_to_process))
+        else:
+            new_pages = [_upload_single_page(item) for item in items_to_process]
+
+        # 4. Bảo đảm thứ tự trang luôn tăng dần từ 1 đến N
+        new_pages.sort(key=lambda p: p.page_number)
         return new_pages
 
     def process_zip_file(
@@ -138,25 +210,24 @@ class ImageIngestService:
 
                 # Lọc file ảnh
                 valid_entries: list[tuple[str, bytes]] = []
-                for info in zf.infolist():
-                    if info.is_dir():
-                        continue
-                    fname = info.filename
-                    # Bỏ qua file rác hệ điều hành
-                    if (
-                        fname.startswith("__MACOSX/")
-                        or fname.startswith(".")
-                        or "/." in fname
-                        or fname.endswith(".DS_Store")
-                        or fname.endswith("Thumbs.db")
-                    ):
+                for zip_info in zf.infolist():
+                    if zip_info.is_dir():
                         continue
 
-                    ext = Path(fname).suffix.lower()
-                    if ext in ALLOWED_EXTENSIONS:
-                        content = zf.read(info)
-                        base_name = Path(fname).name
-                        valid_entries.append((base_name, content))
+                    raw_name = zip_info.filename
+                    # Bỏ qua file rác hệ điều hành
+                    if raw_name.startswith("__MACOSX/") or "/." in raw_name or raw_name.startswith("."):
+                        continue
+
+                    ext = Path(raw_name).suffix.lower()
+                    if ext not in ALLOWED_EXTENSIONS:
+                        continue
+
+                    # Bỏ qua path directory bên trong zip, chỉ lấy tên file
+                    clean_name = Path(raw_name).name
+                    file_bytes = zf.read(zip_info)
+                    valid_entries.append((clean_name, file_bytes))
+
         except zipfile.BadZipFile as e:
             raise ValueError(f"Tệp không phải là định dạng ZIP hợp lệ: {e}") from e
 
@@ -167,8 +238,30 @@ class ImageIngestService:
             chapter, valid_entries, current_max_page, existing_hashes
         )
 
+    def get_local_file_path(self, file_path: str) -> Path:
+        """Trả về đường dẫn file vật lý trên máy (tự động nạp cache từ Google Drive nếu cần)."""
+        if file_path.startswith("gdrive:"):
+            file_id = file_path.removeprefix("gdrive:")
+            if not self.gdrive_client:
+                raise ValueError("Chưa cấu hình Google Drive client")
+            cache_path = self.gdrive_client.cache_dir / f"{file_id}.bin"
+            if not cache_path.exists() or cache_path.stat().st_size == 0:
+                self.gdrive_client.download_file(file_id)
+            return cache_path
+
+        p = Path(file_path)
+        if not p.exists() or not p.is_file():
+            raise FileNotFoundError("Tệp ảnh vật lý không tồn tại trên máy chủ")
+        return p
+
     def delete_file(self, file_path: str) -> None:
-        """Xoá 1 file vật lý."""
+        """Xoá 1 file (trên Google Drive hoặc ổ cứng local)."""
+        if file_path.startswith("gdrive:"):
+            if self.gdrive_client:
+                file_id = file_path.removeprefix("gdrive:")
+                self.gdrive_client.delete_file(file_id)
+            return
+
         try:
             p = Path(file_path)
             if p.exists() and p.is_file():

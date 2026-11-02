@@ -235,3 +235,34 @@ export const MailIcon = makeIcon(
   </>,
 );
 
+export const GripVerticalIcon = makeIcon(
+  "GripVerticalIcon",
+  <>
+    <circle cx="9" cy="12" r="1" />
+    <circle cx="9" cy="5" r="1" />
+    <circle cx="9" cy="19" r="1" />
+    <circle cx="15" cy="12" r="1" />
+    <circle cx="15" cy="5" r="1" />
+    <circle cx="15" cy="19" r="1" />
+  </>,
+);
+
+export const UploadCloudIcon = makeIcon(
+  "UploadCloudIcon",
+  <>
+    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+    <path d="M12 12v9" />
+    <path d="m16 16-4-4-4 4" />
+  </>,
+);
+
+export const TrashIcon = makeIcon(
+  "TrashIcon",
+  <>
+    <path d="M3 6h18" />
+    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+  </>,
+);
+
+

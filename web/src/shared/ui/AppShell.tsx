@@ -1,6 +1,6 @@
 import { Button, Layout, Menu, Tooltip } from "antd";
 import type { ItemType } from "antd/es/menu/interface";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { BrandLogo } from "./BrandLogo";
 
@@ -15,21 +15,21 @@ interface AppShellProps {
   menu: ShellMenuItem[];
   selectedKey: string;
   onNavigate(key: string): void;
-  /** Góc phải thanh trên, ví dụ menu tài khoản. */
-  headerExtra?: ReactNode;
+  /** Vùng thông tin người dùng ở đáy sidebar */
+  sidebarUser?: (collapsed: boolean) => ReactNode;
   footer?: ReactNode;
   /** Đổi giá trị này để chạy lại hiệu ứng chuyển trang. */
   pageKey: string;
   children: ReactNode;
 }
 
-/** Khung chung của Web: menu trái hỗ trợ đóng/mở (collapsible), thanh trên, nội dung. */
+/** Khung chung của Web: menu trái hỗ trợ đóng/mở (collapsible), nội dung. */
 export function AppShell({
   tagline,
   menu,
   selectedKey,
   onNavigate,
-  headerExtra,
+  sidebarUser,
   footer,
   pageKey,
   children,
@@ -54,7 +54,17 @@ export function AppShell({
     });
   };
 
-  const current = menu.find((item) => item.key === selectedKey);
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        toggleCollapsed();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const items: ItemType[] = menu.map(({ key, label, icon }) => ({ key, label, icon }));
 
   return (
@@ -68,25 +78,74 @@ export function AppShell({
         onCollapse={setCollapsed}
         trigger={null}
       >
+        {/* Phần đầu Sider: Brand Logo & Nút thu gọn / mở rộng menu đặt ngay trong Sider */}
         <div
-          className="crt-sider__brand"
           style={{
-            padding: collapsed ? "16px 8px" : undefined,
-            textAlign: collapsed ? "center" : undefined,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: collapsed ? "center" : "space-between",
+            padding: collapsed ? "16px 8px 14px" : "18px 16px 18px 20px",
+            borderBottom: "1px solid var(--crt-border-soft)",
+            marginBottom: 8,
             transition: "all 0.2s ease",
           }}
         >
           {collapsed ? (
-            <Tooltip title="Comic Review Tool" placement="right">
-              <span style={{ fontSize: 24, cursor: "pointer" }} onClick={toggleCollapsed}>
-                🎬
-              </span>
+            <Tooltip title="Mở rộng menu (Ctrl+B)" placement="right">
+              <Button
+                type="text"
+                onClick={toggleCollapsed}
+                style={{
+                  width: 38,
+                  height: 38,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 8,
+                  color: "var(--crt-text)",
+                  padding: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect width="18" height="18" x="3" y="3" rx="2" />
+                  <path d="M9 3v18" />
+                  <path d="m12 9 3 3-3 3" />
+                </svg>
+              </Button>
             </Tooltip>
           ) : (
-            <BrandLogo tagline={tagline} />
+            <>
+              <BrandLogo tagline={tagline} />
+              <Tooltip title="Thu gọn menu (Ctrl+B)" placement="bottom">
+                <Button
+                  type="text"
+                  onClick={toggleCollapsed}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 6,
+                    color: "var(--crt-text-muted)",
+                    padding: 0,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "var(--crt-text)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--crt-text-muted)")}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect width="18" height="18" x="3" y="3" rx="2" />
+                    <path d="M9 3v18" />
+                    <path d="m14 9-3 3 3 3" />
+                  </svg>
+                </Button>
+              </Tooltip>
+            </>
           )}
         </div>
+
         {!collapsed && <div className="crt-sider__label crt-eyebrow">Điều hướng</div>}
+
         <Menu
           className="crt-menu"
           theme="dark"
@@ -95,50 +154,28 @@ export function AppShell({
           items={items}
           selectedKeys={[selectedKey]}
           onClick={({ key }) => onNavigate(key)}
+          style={{ flex: 1, borderRight: 0 }}
         />
+
+        {/* Thông tin người dùng đăng nhập đặt ở đáy Sidebar */}
+        {sidebarUser && (
+          <div
+            className="crt-sider__user"
+            style={{
+              padding: collapsed ? "12px 6px" : "12px 14px",
+              borderTop: "1px solid var(--crt-border-soft)",
+              marginTop: "auto",
+              transition: "all 0.2s ease",
+            }}
+          >
+            {sidebarUser(collapsed)}
+          </div>
+        )}
+
         {footer && !collapsed && <div className="crt-sider__footer">{footer}</div>}
       </Layout.Sider>
 
       <Layout>
-        <header className="crt-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Tooltip title={collapsed ? "Mở rộng thanh menu (Ctrl+B)" : "Thu gọn thanh menu (Ctrl+B)"}>
-              <Button
-                type="text"
-                onClick={toggleCollapsed}
-                style={{
-                  fontSize: 16,
-                  width: 36,
-                  height: 36,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 6,
-                }}
-              >
-                {collapsed ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                    <line x1="3" y1="6" x2="21" y2="6" />
-                    <line x1="3" y1="18" x2="21" y2="18" />
-                  </svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <line x1="9" y1="3" x2="9" y2="21" />
-                    <path d="m14 9-3 3 3 3" />
-                  </svg>
-                )}
-              </Button>
-            </Tooltip>
-
-            <div className="crt-header__crumb">
-              Studio <span aria-hidden="true">/</span> <b>{current?.label}</b>
-            </div>
-          </div>
-          {headerExtra}
-        </header>
-
         <Layout.Content className="crt-content">
           <div key={pageKey} className="crt-page">
             {children}

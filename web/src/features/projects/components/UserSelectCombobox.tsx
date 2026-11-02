@@ -8,21 +8,21 @@ import type { UserCandidate } from "../types";
 
 export interface UserSelectComboboxProps {
   projectId: number;
-  value?: string;
-  onChange?(value: string, user?: UserCandidate): void;
+  value?: string[];
+  onChange?(values: string[]): void;
   placeholder?: string;
   disabled?: boolean;
 }
 
 interface CandidateOption extends DefaultOptionType {
   value: string;
-  label: React.ReactNode;
+  label: string;
   user: UserCandidate;
 }
 
 export function UserSelectCombobox({
   projectId,
-  value,
+  value = [],
   onChange,
   placeholder = "Gõ tìm kiếm theo username, họ tên hoặc email...",
   disabled = false,
@@ -58,7 +58,6 @@ export function UserSelectCombobox({
   // Lắng nghe sự kiện cuộn của popup dropdown (kéo đến đâu mới fetch tiếp)
   const handlePopupScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    // Khi cuộn gần tới đáy (còn 20px) thì fetch trang tiếp theo
     if (scrollHeight - (scrollTop + clientHeight) <= 20) {
       if (hasNextPage && !isFetchingNextPage) {
         fetchNextPage();
@@ -67,18 +66,40 @@ export function UserSelectCombobox({
   };
 
   const options: CandidateOption[] = useMemo(() => {
-    return users.map((u) => {
-      const roleColor =
-        u.system_role === "admin"
-          ? "magenta"
-          : u.system_role === "root"
-          ? "blue"
-          : "default";
+    return users.map((u) => ({
+      value: u.username,
+      label: u.display_name ? `${u.username} (${u.display_name})` : u.username,
+      user: u,
+    }));
+  }, [users]);
 
-      return {
-        value: u.username,
-        user: u,
-        label: (
+  return (
+    <Select
+      mode="multiple"
+      showSearch
+      allowClear
+      disabled={disabled}
+      value={value}
+      placeholder={placeholder}
+      filterOption={false} // Tìm kiếm server-side, không lọc client-side
+      onSearch={(val) => setSearchInput(val)}
+      onChange={(vals) => onChange?.(vals as string[])}
+      options={options}
+      onPopupScroll={handlePopupScroll}
+      style={{ width: "100%" }}
+      maxTagCount="responsive"
+      suffixIcon={<SearchIcon size={16} />}
+      optionRender={(option) => {
+        const u = (option.data as CandidateOption)?.user;
+        if (!u) return option.label;
+        const roleColor =
+          u.system_role === "admin"
+            ? "magenta"
+            : u.system_role === "root"
+            ? "blue"
+            : "default";
+
+        return (
           <div
             style={{
               display: "flex",
@@ -88,15 +109,15 @@ export function UserSelectCombobox({
             }}
           >
             <div>
-              <span style={{ fontWeight: 600, color: "var(--crt-text-primary)" }}>
+              <div style={{ fontWeight: 600, color: "var(--crt-text-primary)" }}>
                 {u.username}
-              </span>
-              {u.display_name && (
-                <span style={{ marginLeft: 8, fontSize: 13, color: "var(--crt-text-muted)" }}>
-                  ({u.display_name})
-                </span>
-              )}
-              <div style={{ fontSize: 11, color: "var(--crt-text-muted)", marginTop: 2 }}>
+                {u.display_name && (
+                  <span style={{ marginLeft: 6, fontSize: 13, color: "var(--crt-text-muted)", fontWeight: 400 }}>
+                    ({u.display_name})
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--crt-text-muted)", marginTop: 2 }}>
                 {u.email}
               </div>
             </div>
@@ -104,28 +125,8 @@ export function UserSelectCombobox({
               {ROLE_LABELS[u.system_role as SystemRole] ?? u.system_role}
             </Tag>
           </div>
-        ),
-      };
-    });
-  }, [users]);
-
-  return (
-    <Select
-      showSearch
-      allowClear
-      disabled={disabled}
-      value={value}
-      placeholder={placeholder}
-      filterOption={false} // Tìm kiếm server-side, không lọc client-side
-      onSearch={(val) => setSearchInput(val)}
-      onChange={(val, option) => {
-        const selected = option as CandidateOption | undefined;
-        onChange?.(val, selected?.user);
+        );
       }}
-      options={options}
-      onPopupScroll={handlePopupScroll}
-      style={{ width: "100%" }}
-      suffixIcon={<SearchIcon size={16} />}
       notFoundContent={
         isLoading || isFetching ? (
           <div style={{ textAlign: "center", padding: "16px 0" }}>

@@ -131,8 +131,8 @@ body {
 }
 
 .crt-page {
-  max-width: 1280px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
   animation: crt-fade-up 0.45s var(--crt-ease) both;
 }
 
@@ -545,7 +545,16 @@ body {
   color: var(--crt-text);
 }
 .crt-content {
-  padding: 28px;
+  padding: 24px 32px;
+  min-height: 100vh;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+@media (min-width: 1600px) {
+  .crt-content {
+    padding: 28px 48px;
+  }
 }
 
 /* ---------- Tiêu đề trang ---------- */

@@ -11,7 +11,7 @@ import {
   Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useChapters, useDeleteChapter } from "../hooks/useChapters";
@@ -26,14 +26,30 @@ interface ChapterListTabProps {
 
 export function ChapterListTab({ projectId, canEdit, canManage }: ChapterListTabProps) {
   const navigate = useNavigate();
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const PAGE_SIZE = 24;
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
 
-  const { data, isLoading } = useChapters(projectId, { status: statusFilter });
+  const { data, isLoading } = useChapters(projectId, {
+    status: statusFilter === "all" ? undefined : statusFilter,
+  });
   const deleteMutation = useDeleteChapter(projectId);
 
   const chapters = data?.items ?? [];
+
+  // Tự động lùi trang nếu số trang tối đa giảm xuống (ví dụ xóa hết chapter ở trang 3 thì lùi về trang 2)
+  useEffect(() => {
+    if (chapters.length > 0) {
+      const maxPage = Math.max(1, Math.ceil(chapters.length / PAGE_SIZE));
+      if (currentPage > maxPage) {
+        setCurrentPage(maxPage);
+      }
+    } else if (currentPage > 1) {
+      setCurrentPage(1);
+    }
+  }, [chapters.length, currentPage]);
 
   const nextChapterNumber = useMemo(() => {
     if (!chapters.length) return 1;
@@ -45,6 +61,13 @@ export function ChapterListTab({ projectId, canEdit, canManage }: ChapterListTab
     try {
       await deleteMutation.mutateAsync(chapterId);
       message.success("Đã xoá tập truyện");
+
+      // Tính toán nếu xóa chapter cuối cùng của trang hiện tại thì lùi trang ngay lập tức
+      const remainingTotal = chapters.length - 1;
+      const maxPageAfterDelete = Math.max(1, Math.ceil(remainingTotal / PAGE_SIZE));
+      if (currentPage > maxPageAfterDelete) {
+        setCurrentPage(maxPageAfterDelete);
+      }
     } catch (err) {
       message.error(errorMessage(err));
     }
@@ -163,12 +186,15 @@ export function ChapterListTab({ projectId, canEdit, canManage }: ChapterListTab
         <Space size={12}>
           <span style={{ fontWeight: 500 }}>Lọc trạng thái:</span>
           <Select
-            style={{ width: 180 }}
+            style={{ width: 195 }}
             value={statusFilter}
-            onChange={(val) => setStatusFilter(val)}
+            onChange={(val) => {
+              setStatusFilter(val ?? "all");
+              setCurrentPage(1);
+            }}
             allowClear
-            placeholder="Tất cả trạng thái"
             options={[
+              { value: "all", label: "Tất cả trạng thái" },
               { value: "draft", label: "Chưa có ảnh (Draft)" },
               { value: "ready", label: "Sẵn sàng (Ready)" },
               { value: "processing", label: "Đang chạy Pipeline" },
@@ -180,10 +206,8 @@ export function ChapterListTab({ projectId, canEdit, canManage }: ChapterListTab
         {canEdit && (
           <Button
             type="primary"
-            onClick={() => {
-              setEditingChapter(null);
-              setModalOpen(true);
-            }}
+            style={{ background: "#52c41a", borderColor: "#52c41a", fontWeight: 600 }}
+            onClick={() => navigate(`/projects/${projectId}/chapters/create`)}
           >
             + Thêm Chapter mới
           </Button>
@@ -195,7 +219,18 @@ export function ChapterListTab({ projectId, canEdit, canManage }: ChapterListTab
         columns={columns}
         dataSource={chapters}
         loading={isLoading}
-        pagination={{ pageSize: 20, showTotal: (total) => `Tổng ${total} tập truyện` }}
+        pagination={
+          chapters.length > PAGE_SIZE
+            ? {
+                current: currentPage,
+                pageSize: PAGE_SIZE,
+                onChange: (page) => setCurrentPage(page),
+                showTotal: (total) => `Tổng ${total} tập truyện`,
+                hideOnSinglePage: true,
+                showSizeChanger: false,
+              }
+            : false
+        }
         locale={{
           emptyText: (
             <Empty
@@ -205,10 +240,8 @@ export function ChapterListTab({ projectId, canEdit, canManage }: ChapterListTab
               {canEdit && (
                 <Button
                   type="primary"
-                  onClick={() => {
-                    setEditingChapter(null);
-                    setModalOpen(true);
-                  }}
+                  style={{ background: "#52c41a", borderColor: "#52c41a", fontWeight: 600 }}
+                  onClick={() => navigate(`/projects/${projectId}/chapters/create`)}
                 >
                   Tạo tập truyện đầu tiên
                 </Button>

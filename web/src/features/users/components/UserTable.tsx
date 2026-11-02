@@ -20,7 +20,7 @@ interface UserTableProps {
   actor: User;
   users: User[];
   loading: boolean;
-  pagination: TablePaginationConfig;
+  pagination: TablePaginationConfig | false;
   onEdit(user: User): void;
   onResetPassword(user: User): void;
   onSetLocked(user: User, locked: boolean): void;
@@ -36,6 +36,23 @@ export function UserTable({
   onSetLocked,
 }: UserTableProps) {
   const columns: ColumnsType<User> = [
+    {
+      title: "STT",
+      key: "stt",
+      width: 70,
+      align: "center",
+      render: (_, __, index) => {
+        const currentPage =
+          typeof pagination === "object" && pagination ? pagination.current ?? 1 : 1;
+        const currentSize =
+          typeof pagination === "object" && pagination ? pagination.pageSize ?? 24 : 24;
+        return (
+          <span style={{ fontWeight: 500, color: "var(--crt-text-muted)" }}>
+            {(currentPage - 1) * currentSize + index + 1}
+          </span>
+        );
+      },
+    },
     {
       title: "Thành viên",
       key: "user",

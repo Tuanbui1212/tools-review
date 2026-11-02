@@ -42,22 +42,52 @@ export function ProjectMembersTab({ project, canManage }: ProjectMembersTabProps
   const updateProject = useUpdateProject();
 
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
-  const [inviteIdentifier, setInviteIdentifier] = useState("");
-  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [selectedIdentifiers, setSelectedIdentifiers] = useState<string[]>([]);
+  const [inviteErrors, setInviteErrors] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInvite = async () => {
-    if (!inviteIdentifier.trim()) {
-      setInviteError("Vui lòng nhập username hoặc ID của thành viên.");
+    if (selectedIdentifiers.length === 0) {
+      setInviteErrors(["Vui lòng chọn ít nhất một thành viên để mời."]);
       return;
     }
-    setInviteError(null);
-    try {
-      await inviteMember.mutateAsync(inviteIdentifier.trim());
-      message.success(`Đã gửi lời mời tham gia dự án tới ${inviteIdentifier.trim()}!`);
-      setInviteIdentifier("");
+    setInviteErrors([]);
+    setIsSubmitting(true);
+
+    const results = await Promise.allSettled(
+      selectedIdentifiers.map((id) => inviteMember.mutateAsync(id))
+    );
+
+    const successful: string[] = [];
+    const failed: { id: string; error: string }[] = [];
+
+    results.forEach((res, index) => {
+      const id = selectedIdentifiers[index];
+      if (res.status === "fulfilled") {
+        successful.push(id);
+      } else {
+        failed.push({
+          id,
+          error: errorMessage(res.reason),
+        });
+      }
+    });
+
+    setIsSubmitting(false);
+
+    if (successful.length > 0) {
+      message.success(
+        `Đã gửi lời mời tới ${successful.length} thành viên (${successful.join(", ")})!`
+      );
+    }
+
+    if (failed.length === 0) {
+      setSelectedIdentifiers([]);
       setInviteModalOpen(false);
-    } catch (err) {
-      setInviteError(errorMessage(err));
+    } else {
+      // Giữ lại các user bị lỗi để người dùng xem và quyết định
+      setSelectedIdentifiers(failed.map((f) => f.id));
+      setInviteErrors(failed.map((f) => `${f.id}: ${f.error}`));
     }
   };
 
@@ -182,8 +212,8 @@ export function ProjectMembersTab({ project, canManage }: ProjectMembersTabProps
             type="primary"
             icon={<PlusIcon size={16} />}
             onClick={() => {
-              setInviteIdentifier("");
-              setInviteError(null);
+              setSelectedIdentifiers([]);
+              setInviteErrors([]);
               setInviteModalOpen(true);
             }}
           >
@@ -205,26 +235,56 @@ export function ProjectMembersTab({ project, canManage }: ProjectMembersTabProps
         title="Mời thành viên vào dự án"
         open={inviteModalOpen}
         onOk={handleInvite}
-        confirmLoading={inviteMember.isPending}
-        onCancel={() => setInviteModalOpen(false)}
-        okText="Gửi lời mời"
+        confirmLoading={isSubmitting}
+        onCancel={() => {
+          setSelectedIdentifiers([]);
+          setInviteErrors([]);
+          setInviteModalOpen(false);
+        }}
+        okText={
+          selectedIdentifiers.length > 1
+            ? `Gửi lời mời (${selectedIdentifiers.length})`
+            : "Gửi lời mời"
+        }
         cancelText="Đóng"
+        width={580}
+        destroyOnClose
       >
         <p style={{ color: "var(--crt-text-muted)", fontSize: 13, marginBottom: 16 }}>
-          Tìm kiếm và chọn người dùng muốn mời vào dự án. Hệ thống tự động cuộn tải thêm và lọc bỏ những thành viên đã tham gia.
+          Tìm kiếm và chọn các người dùng muốn mời vào dự án. Bạn có thể chọn nhiều người cùng lúc.
+          Hệ thống hỗ trợ tìm kiếm theo username, họ tên, email và tự động cuộn tải thêm.
         </p>
 
-        {inviteError && (
-          <Alert message={inviteError} type="error" showIcon style={{ marginBottom: 16 }} />
+        {inviteErrors.length > 0 && (
+          <Alert
+            message="Không thể gửi lời mời đến một số thành viên"
+            description={
+              <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+                {inviteErrors.map((err, idx) => (
+                  <li key={idx}>{err}</li>
+                ))}
+              </ul>
+            }
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
         )}
 
         <Form layout="vertical">
-          <Form.Item label="Người dùng được mời" required>
+          <Form.Item
+            label="Danh sách người dùng được mời"
+            required
+            tooltip="Chọn một hoặc nhiều thành viên từ danh sách gợi ý"
+          >
             <UserSelectCombobox
               projectId={project.id}
-              value={inviteIdentifier || undefined}
-              onChange={(val) => setInviteIdentifier(val)}
-              placeholder="Gõ để tìm kiếm theo username, họ tên hoặc email..."
+              value={selectedIdentifiers}
+              onChange={(vals) => {
+                setSelectedIdentifiers(vals);
+                if (inviteErrors.length > 0) setInviteErrors([]);
+              }}
+              placeholder="Chọn hoặc gõ tìm kiếm thành viên..."
             />
           </Form.Item>
         </Form>

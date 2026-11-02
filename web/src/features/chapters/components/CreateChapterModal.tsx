@@ -49,6 +49,7 @@ export function CreateChapterModal({
       const values = await form.validateFields();
       if (isEditing && chapterToEdit) {
         await updateMutation.mutateAsync({
+          chapter_number: values.chapter_number,
           title: values.title || null,
         });
         message.success("Cập nhật thông tin tập truyện thành công");
@@ -89,14 +90,17 @@ export function CreateChapterModal({
             { required: true, message: "Vui lòng nhập số chapter" },
             { type: "number", min: 1, message: "Số chapter phải là số nguyên >= 1" },
           ]}
-          extra="Số nguyên dương xác định thứ tự đọc trong truyện (ví dụ: 1, 2, 3...)"
+          extra={
+            isEditing
+              ? "Nếu đổi số thứ tự, hệ thống sẽ tự động cập nhật tên thư mục lưu trữ (Google Drive) và sắp xếp lại danh sách."
+              : "Số nguyên dương xác định thứ tự đọc trong truyện (ví dụ: 1, 2, 3...)"
+          }
         >
           <InputNumber
             min={1}
             precision={0}
             style={{ width: "100%" }}
             placeholder="1"
-            disabled={isEditing}
           />
         </Form.Item>
 

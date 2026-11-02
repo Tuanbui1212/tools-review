@@ -1,5 +1,4 @@
 import {
-  ActivityIcon,
   AppShell,
   FolderIcon,
   UserMenu,
@@ -15,17 +14,14 @@ export function MainLayout() {
   const { pathname } = useLocation();
 
   const menu: ShellMenuItem[] = [
-    { key: "/", label: "Trạng thái hệ thống", icon: <ActivityIcon /> },
     { key: "/projects", label: "Dự án", icon: <FolderIcon /> },
   ];
   if (user && (user.system_role === "admin" || user.system_role === "root")) {
     menu.push({ key: "/users", label: "Quản lý user", icon: <UsersIcon /> });
   }
 
-  let selected = "/";
-  if (pathname.startsWith("/projects")) {
-    selected = "/projects";
-  } else if (pathname.startsWith("/users")) {
+  let selected = "/projects";
+  if (pathname.startsWith("/users")) {
     selected = "/users";
   }
 
@@ -35,7 +31,7 @@ export function MainLayout() {
       menu={menu}
       selectedKey={selected}
       onNavigate={(key) => navigate(key)}
-      headerExtra={<UserMenu />}
+      sidebarUser={(collapsed) => <UserMenu collapsed={collapsed} />}
       footer="M01 · M02 · Nền tảng & Dự án"
       pageKey={pathname}
     >

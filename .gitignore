@@ -15,8 +15,10 @@ dist/
 .env
 *.log
 
-# Thư mục làm việc local của engine
+# Thư mục làm việc local của engine & storage
 client/app/engine/workspace/
+main/storage/
+downloads/
 
 # Hệ điều hành / editor
 .DS_Store

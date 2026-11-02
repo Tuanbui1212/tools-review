@@ -1,5 +1,6 @@
 import {
   BookOpenIcon,
+  EditIcon,
   FilmIcon,
   FolderIcon,
   PageHeader,
@@ -139,6 +140,16 @@ export function ProjectDetailPage() {
             <span>•</span>
             <span>Tạo bởi: <strong>@{project.owner_username}</strong></span>
           </div>
+        }
+        extra={
+          canManage ? (
+            <Button
+              icon={<EditIcon size={16} />}
+              onClick={() => navigate(`/projects/${project.id}/edit`)}
+            >
+              Chỉnh sửa dự án
+            </Button>
+          ) : undefined
         }
       />
 

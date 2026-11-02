@@ -10,8 +10,8 @@
 |---|---|---|---|---|
 | **01** | Nền tảng hệ thống | [module-01-nen-tang-he-thong.md](module-01-nen-tang-he-thong.md) | Auth JWT, Quản lý tài khoản, Phân quyền Admin/Root/Sub | ✅ **Đã xong** |
 | **02** | Quản lý Dự án & Thành viên | [module-02-quan-ly-du-an-thanh-vien.md](module-02-quan-ly-du-an-thanh-vien.md) | Tạo dự án truyện, Phân quyền Owner/Member, Mời thành viên | ✅ **Đã xong** |
-| **03** | Quản lý Tập truyện & Tải ảnh | [module-03-quan-ly-tap-truyen-va-tai-anh.md](module-03-quan-ly-tap-truyen-va-tai-anh.md) | Tạo Chapter (S1-S2), Upload nhiều ảnh/ZIP, Sắp xếp thứ tự trang | 📝 **Đang đặc tả** |
-| **04** | Hạ tầng Kho lưu trữ & Worker | [module-04-ha-tang-kho-luu-tru-va-worker.md](module-04-ha-tang-kho-luu-tru-va-worker.md) | MinIO/S3 lưu trữ, Celery + Redis hàng đợi nền, WebSocket tiến độ | ⏳ Chờ làm |
+| **03** | Quản lý Tập truyện & Tải ảnh | [module-03-quan-ly-tap-truyen-va-tai-anh.md](module-03-quan-ly-tap-truyen-va-tai-anh.md) | Tạo Chapter (S1-S2), Upload ảnh/ZIP, Sắp xếp thứ tự trang | ✅ **Đã xong** |
+| **04** | Hạ tầng Kho lưu trữ & 3 Server Worker | [module-04-ha-tang-kho-luu-tru-va-worker.md](module-04-ha-tang-kho-luu-tru-va-worker.md) | Google Drive storage, 3 Worker server riêng (IO/AI/Media), WebSocket tiến độ | ✅ **Đã xong** |
 | **05** | Tự động Cắt khung tranh | [module-05-tu-dong-cat-khung-tranh.md](module-05-tu-dong-cat-khung-tranh.md) | Tách Panel (S3), Thứ tự đọc tranh, Công cụ Web sửa panel | ⏳ Chờ làm |
 | **06** | Nhận diện Lời thoại & OCR | [module-06-nhan-dien-loi-thoai-va-ocr.md](module-06-nhan-dien-loi-thoai-va-ocr.md) | Bóc tách bong bóng thoại (S4), OCR chữ đa ngôn ngữ, Từ điển Glossary | ⏳ Chờ làm |
 | **07** | Nhận diện Nhân vật & Gắn thoại | [module-07-nhan-dien-nhan-vat-va-gan-thoai.md](module-07-nhan-dien-nhan-vat-va-gan-thoai.md) | Nhận diện nhân vật (S5-S6), Gom cụm mặt, Gán người nói, **Gate A** | ⏳ Chờ làm |

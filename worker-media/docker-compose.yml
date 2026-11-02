@@ -1,0 +1,29 @@
+# Worker Media Server: Tác vụ dựng & render video nặng (FFmpeg encoding, timeline)
+name: crt-worker-media
+
+services:
+  worker-media-api:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8103 --reload
+    environment:
+      WORKER_NAME: worker-media-1
+      REDIS_URL: redis://${MAIN_HOST:-host.docker.internal}:6379/0
+      MAIN_API_URL: http://${MAIN_HOST:-host.docker.internal}:8000
+    volumes:
+      - ./app:/srv/worker-media/app
+    ports:
+      - "8103:8103"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  worker-media-celery:
+    build: .
+    command: celery -A app.tasks.celery_app worker -Q media_queue -c 1 -n worker_media@%h -l info
+    environment:
+      WORKER_NAME: worker-media-1
+      REDIS_URL: redis://${MAIN_HOST:-host.docker.internal}:6379/0
+      MAIN_API_URL: http://${MAIN_HOST:-host.docker.internal}:8000
+    volumes:
+      - ./app:/srv/worker-media/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

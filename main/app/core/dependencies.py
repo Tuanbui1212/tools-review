@@ -23,6 +23,7 @@ from app.schemas.common import MAX_PAGE_SIZE, PageParams
 from app.services.auth_service import AuthService
 from app.services.chapter_service import ChapterService
 from app.services.health_service import HealthService
+from app.services.pipeline_task_service import PipelineTaskService
 from app.services.project_service import ProjectService
 from app.services.user_service import UserService
 
@@ -120,3 +121,8 @@ def get_chapter_service(db: DbSession) -> ChapterService:
         ProjectRepository(db),
         ProjectMemberRepository(db),
     )
+
+
+def get_pipeline_task_service(db: DbSession) -> PipelineTaskService:
+    return PipelineTaskService(db)
+

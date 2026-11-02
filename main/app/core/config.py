@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     s3_bucket: str = "crt-files"
 
     storage_dir: str = "storage"
+    storage_backend: str = "local"  # "local" hoặc "google_drive"
+    google_drive_client_id: str | None = None
+    google_drive_client_secret: str | None = None
+    google_drive_refresh_token: str | None = None
+    google_drive_root_folder_id: str | None = None
 
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:3001"]
 

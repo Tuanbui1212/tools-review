@@ -12,6 +12,7 @@ class ChapterCreate(BaseModel):
 
 
 class ChapterUpdate(BaseModel):
+    chapter_number: int | None = Field(default=None, ge=1, description="Số chapter (>= 1)")
     title: str | None = Field(default=None, max_length=255)
     status: ChapterStatus | None = None
 

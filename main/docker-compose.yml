@@ -46,6 +46,8 @@ services:
   api:
     build: .
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-crt}:${POSTGRES_PASSWORD:-crt}@postgres:5432/${POSTGRES_DB:-crt}
       REDIS_URL: redis://redis:6379/0
@@ -56,6 +58,11 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-jwt-secret-change-me-in-production}
       STORAGE_DIR: ${STORAGE_DIR:-/srv/main/storage}
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-google_drive}
+      GOOGLE_DRIVE_CLIENT_ID: ${GOOGLE_DRIVE_CLIENT_ID}
+      GOOGLE_DRIVE_CLIENT_SECRET: ${GOOGLE_DRIVE_CLIENT_SECRET}
+      GOOGLE_DRIVE_REFRESH_TOKEN: ${GOOGLE_DRIVE_REFRESH_TOKEN}
+      GOOGLE_DRIVE_ROOT_FOLDER_ID: ${GOOGLE_DRIVE_ROOT_FOLDER_ID}
     ports:
       - "8000:8000"
     volumes:
