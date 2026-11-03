@@ -30,6 +30,7 @@ import {
   Progress,
   Row,
   Spin,
+  Tabs,
   Tag,
   Upload,
 } from "antd";
@@ -38,6 +39,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { useProject } from "../../projects/hooks/useProjects";
+import { ChapterPanelsTab } from "../components/ChapterPanelsTab";
 import { SortablePageThumbnailCard } from "../components/SortablePageThumbnailCard";
 import {
   useChapter,
@@ -340,243 +342,266 @@ export function ChapterPagesPage() {
         </div>
       )}
 
-      {/* Bố cục 2 cột */}
-      <Row gutter={[24, 24]}>
-        {/* Cột trái: Thông tin & Upload thêm ảnh (gọn gàng) */}
-        <Col xs={24} md={10} lg={8} xl={7} xxl={5}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <Card
-              bordered
-              style={{
-                background: "var(--crt-surface)",
-                borderColor: "var(--crt-border)",
-                borderRadius: 12,
-              }}
-              bodyStyle={{ padding: 20 }}
-            >
-              {/* Số chapter */}
-              <div style={{ marginBottom: 16 }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    marginBottom: 6,
-                    color: "var(--crt-text)",
-                  }}
-                >
-                  Số chapter
-                </label>
-                <Input
-                  disabled
-                  value={`Chapter ${chapter.chapter_number}`}
-                  style={{
-                    height: 40,
-                    fontWeight: 700,
-                    fontSize: 15,
-                    borderRadius: 8,
-                    background: "rgba(255, 255, 255, 0.04)",
-                  }}
-                />
-              </div>
-
-              {/* Tiêu đề chapter */}
-              <div style={{ marginBottom: 16 }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    marginBottom: 6,
-                    color: "var(--crt-text)",
-                  }}
-                >
-                  Tiêu đề chapter
-                </label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <Input
-                    value={editingTitle}
-                    onChange={(e) => {
-                      setEditingTitle(e.target.value);
-                      setIsEditingTitle(true);
-                    }}
-                    placeholder="Hãy nhập nội dung"
-                    style={{ height: 40, borderRadius: 8 }}
-                  />
-                  {isEditingTitle && (
-                    <Button
-                      type="primary"
-                      onClick={handleUpdateTitle}
-                      loading={updateChapterMutation.isPending}
+      {/* Hệ thống Tabs: Quản lý trang & Cắt khung tranh (Module 05) */}
+      <Tabs
+        defaultActiveKey="pages"
+        type="card"
+        items={[
+          {
+            key: "pages",
+            label: `1. Quản lý trang (${localPages.length})`,
+            children: (
+              <Row gutter={[24, 24]}>
+                {/* Cột trái: Thông tin & Upload thêm ảnh (gọn gàng) */}
+                <Col xs={24} md={10} lg={8} xl={7} xxl={5}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <Card
+                      bordered
+                      style={{
+                        background: "var(--crt-surface)",
+                        borderColor: "var(--crt-border)",
+                        borderRadius: 12,
+                      }}
+                      bodyStyle={{ padding: 20 }}
                     >
-                      Lưu
-                    </Button>
-                  )}
-                </div>
-              </div>
+                      {/* Số chapter */}
+                      <div style={{ marginBottom: 16 }}>
+                        <label
+                          style={{
+                            display: "block",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            marginBottom: 6,
+                            color: "var(--crt-text)",
+                          }}
+                        >
+                          Số chapter
+                        </label>
+                        <Input
+                          disabled
+                          value={`Chapter ${chapter.chapter_number}`}
+                          style={{
+                            height: 40,
+                            fontWeight: 700,
+                            fontSize: 15,
+                            borderRadius: 8,
+                            background: "rgba(255, 255, 255, 0.04)",
+                          }}
+                        />
+                      </div>
 
-              {/* Vùng upload thêm ảnh */}
-              {canEdit && (
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      marginBottom: 6,
-                      color: "var(--crt-text)",
-                    }}
-                  >
-                    Thêm ảnh trang chapter
-                  </label>
-                  <Dragger
-                    multiple
-                    accept="image/png,image/jpeg,image/jpg,image/webp,.png,.jpg,.jpeg,.webp"
-                    disabled={uploading}
-                    beforeUpload={handleFileIncoming}
-                    showUploadList={false}
-                    style={{
-                      padding: "20px 12px",
-                      background: "rgba(255, 255, 255, 0.02)",
-                      border: "1.5px dashed rgba(255, 255, 255, 0.2)",
-                      borderRadius: 10,
-                      cursor: "pointer",
-                    }}
-                  >
-                    <p style={{ margin: "0 auto 8px", color: "var(--crt-text-muted)" }}>
-                      <UploadCloudIcon size={34} />
-                    </p>
-                    <p style={{ fontSize: 13, fontWeight: 600, margin: "0 0 4px", color: "var(--crt-text)" }}>
-                      Click hoặc kéo thả ảnh vào đây
-                    </p>
-                    <p style={{ fontSize: 12, color: "var(--crt-text-muted)", margin: 0 }}>
-                      Hỗ trợ nhiều ảnh hoặc ZIP • Tải lên ngay
-                    </p>
-                  </Dragger>
-                </div>
-              )}
-            </Card>
+                      {/* Tiêu đề chapter */}
+                      <div style={{ marginBottom: 16 }}>
+                        <label
+                          style={{
+                            display: "block",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            marginBottom: 6,
+                            color: "var(--crt-text)",
+                          }}
+                        >
+                          Tiêu đề chapter
+                        </label>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <Input
+                            value={editingTitle}
+                            onChange={(e) => {
+                              setEditingTitle(e.target.value);
+                              setIsEditingTitle(true);
+                            }}
+                            placeholder="Hãy nhập nội dung"
+                            style={{ height: 40, borderRadius: 8 }}
+                          />
+                          {isEditingTitle && (
+                            <Button
+                              type="primary"
+                              onClick={handleUpdateTitle}
+                              loading={updateChapterMutation.isPending}
+                            >
+                              Lưu
+                            </Button>
+                          )}
+                        </div>
+                      </div>
 
-            {/* Thẻ thống kê: Tổng số trang (xanh lá nổi bật) */}
-            <Card
-              bordered
-              style={{
-                background: "rgba(16, 50, 26, 0.5)",
-                borderColor: "rgba(82, 196, 26, 0.3)",
-                borderRadius: 12,
-                textAlign: "center",
-              }}
-              bodyStyle={{ padding: "20px 16px" }}
-            >
-              <div style={{ fontSize: 14, color: "var(--crt-text-muted)", marginBottom: 4 }}>
-                Tổng số trang
-              </div>
-              <div
-                style={{
-                  fontSize: 48,
-                  fontWeight: 800,
-                  color: "#52c41a",
-                  lineHeight: 1.1,
-                }}
-              >
-                {localPages.length}
-              </div>
-            </Card>
-          </div>
-        </Col>
+                      {/* Vùng upload thêm ảnh */}
+                      {canEdit && (
+                        <div>
+                          <label
+                            style={{
+                              display: "block",
+                              fontSize: 13,
+                              fontWeight: 600,
+                              marginBottom: 6,
+                              color: "var(--crt-text)",
+                            }}
+                          >
+                            Thêm ảnh trang chapter
+                          </label>
+                          <Dragger
+                            multiple
+                            accept="image/png,image/jpeg,image/jpg,image/webp,.png,.jpg,.jpeg,.webp"
+                            disabled={uploading}
+                            beforeUpload={handleFileIncoming}
+                            showUploadList={false}
+                            style={{
+                              padding: "20px 12px",
+                              background: "rgba(255, 255, 255, 0.02)",
+                              border: "1.5px dashed rgba(255, 255, 255, 0.2)",
+                              borderRadius: 10,
+                              cursor: "pointer",
+                            }}
+                          >
+                            <p style={{ margin: "0 auto 8px", color: "var(--crt-text-muted)" }}>
+                              <UploadCloudIcon size={34} />
+                            </p>
+                            <p style={{ fontSize: 13, fontWeight: 600, margin: "0 0 4px", color: "var(--crt-text)" }}>
+                              Click hoặc kéo thả ảnh vào đây
+                            </p>
+                            <p style={{ fontSize: 12, color: "var(--crt-text-muted)", margin: 0 }}>
+                              Hỗ trợ nhiều ảnh hoặc ZIP • Tải lên ngay
+                            </p>
+                          </Dragger>
+                        </div>
+                      )}
+                    </Card>
 
-        {/* Cột phải: Sắp xếp thứ tự trang (kéo thả) */}
-        <Col xs={24} md={14} lg={16} xl={17} xxl={19}>
-          <Card
-            bordered
-            title={
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                <span style={{ fontSize: 16, fontWeight: 600 }}>
-                  Sắp xếp thứ tự trang (kéo thả)
-                </span>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  {hasOrderChanged && (
-                    <Tag color="warning" style={{ margin: 0 }}>
-                      Chưa lưu thứ tự
-                    </Tag>
-                  )}
-                  {canEdit && hasOrderChanged && (
-                    <Button
-                      size="small"
-                      type="primary"
-                      onClick={handleSaveOrder}
-                      loading={reorderMutation.isPending}
-                      style={{ background: "#52c41a", borderColor: "#52c41a" }}
+                    {/* Thẻ thống kê: Tổng số trang */}
+                    <Card
+                      bordered
+                      style={{
+                        background: "rgba(16, 50, 26, 0.5)",
+                        borderColor: "rgba(82, 196, 26, 0.3)",
+                        borderRadius: 12,
+                        textAlign: "center",
+                      }}
+                      bodyStyle={{ padding: "20px 16px" }}
                     >
-                      Lưu thứ tự
-                    </Button>
-                  )}
-                </div>
-              </div>
-            }
-            style={{
-              background: "var(--crt-surface)",
-              borderColor: "var(--crt-border)",
-              borderRadius: 12,
-              minHeight: 520,
-            }}
-            bodyStyle={{ padding: 20 }}
-          >
-            {pagesQuery.isLoading ? (
-              <div style={{ textAlign: "center", padding: "60px 0" }}>
-                <Spin tip="Đang tải danh sách trang..." />
-              </div>
-            ) : localPages.length === 0 ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  padding: "100px 20px",
-                  color: "var(--crt-text-muted)",
-                }}
-              >
-                <div style={{ opacity: 0.3, marginBottom: 12 }}>
-                  <UploadCloudIcon size={64} />
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 500 }}>
-                  Chưa có ảnh nào được thêm
-                </div>
-                <div style={{ fontSize: 13, marginTop: 6, opacity: 0.7 }}>
-                  Kéo thả ảnh vào vùng bên trái để bắt đầu
-                </div>
-              </div>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={localPages.map((p) => p.id)}
-                  strategy={rectSortingStrategy}
-                >
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))",
-                      gap: 16,
-                    }}
-                  >
-                    {localPages.map((page) => (
-                      <SortablePageThumbnailCard
-                        key={page.id}
-                        page={page}
-                        chapterId={chapterId}
-                        projectId={projectId}
-                        canEdit={canEdit}
-                      />
-                    ))}
+                      <div style={{ fontSize: 14, color: "var(--crt-text-muted)", marginBottom: 4 }}>
+                        Tổng số trang
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 48,
+                          fontWeight: 800,
+                          color: "#52c41a",
+                          lineHeight: 1.1,
+                        }}
+                      >
+                        {localPages.length}
+                      </div>
+                    </Card>
                   </div>
-                </SortableContext>
-              </DndContext>
-            )}
-          </Card>
-        </Col>
-      </Row>
+                </Col>
+
+                {/* Cột phải: Sắp xếp thứ tự trang (kéo thả) */}
+                <Col xs={24} md={14} lg={16} xl={17} xxl={19}>
+                  <Card
+                    bordered
+                    title={
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                        <span style={{ fontSize: 16, fontWeight: 600 }}>
+                          Sắp xếp thứ tự trang (kéo thả)
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          {hasOrderChanged && (
+                            <Tag color="warning" style={{ margin: 0 }}>
+                              Chưa lưu thứ tự
+                            </Tag>
+                          )}
+                          {canEdit && hasOrderChanged && (
+                            <Button
+                              size="small"
+                              type="primary"
+                              onClick={handleSaveOrder}
+                              loading={reorderMutation.isPending}
+                              style={{ background: "#52c41a", borderColor: "#52c41a" }}
+                            >
+                              Lưu thứ tự
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    }
+                    style={{
+                      background: "var(--crt-surface)",
+                      borderColor: "var(--crt-border)",
+                      borderRadius: 12,
+                      minHeight: 520,
+                    }}
+                    bodyStyle={{ padding: 20 }}
+                  >
+                    {pagesQuery.isLoading ? (
+                      <div style={{ textAlign: "center", padding: "60px 0" }}>
+                        <Spin tip="Đang tải danh sách trang..." />
+                      </div>
+                    ) : localPages.length === 0 ? (
+                      <div
+                        style={{
+                          textAlign: "center",
+                          padding: "100px 20px",
+                          color: "var(--crt-text-muted)",
+                        }}
+                      >
+                        <div style={{ opacity: 0.3, marginBottom: 12 }}>
+                          <UploadCloudIcon size={64} />
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 500 }}>
+                          Chưa có ảnh nào được thêm
+                        </div>
+                        <div style={{ fontSize: 13, marginTop: 6, opacity: 0.7 }}>
+                          Kéo thả ảnh vào vùng bên trái để bắt đầu
+                        </div>
+                      </div>
+                    ) : (
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <SortableContext
+                          items={localPages.map((p) => p.id)}
+                          strategy={rectSortingStrategy}
+                        >
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))",
+                              gap: 16,
+                            }}
+                          >
+                            {localPages.map((page) => (
+                              <SortablePageThumbnailCard
+                                key={page.id}
+                                page={page}
+                                chapterId={chapterId}
+                                projectId={projectId}
+                                canEdit={canEdit}
+                              />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+                    )}
+                  </Card>
+                </Col>
+              </Row>
+            ),
+          },
+          {
+            key: "panels",
+            label: "2. Cắt khung tranh (Module 05)",
+            children: (
+              <ChapterPanelsTab
+                chapter={chapter}
+                pages={originalPages}
+                canEdit={canEdit}
+              />
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

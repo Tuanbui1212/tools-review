@@ -11,6 +11,7 @@ services:
       MAIN_API_URL: http://${MAIN_HOST:-host.docker.internal}:8000
     volumes:
       - ./app:/srv/worker-ai/app
+      - ../main/storage:/srv/main/storage
     ports:
       - "8102:8102"
     extra_hosts:
@@ -25,5 +26,6 @@ services:
       MAIN_API_URL: http://${MAIN_HOST:-host.docker.internal}:8000
     volumes:
       - ./app:/srv/worker-ai/app
+      - ../main/storage:/srv/main/storage
     extra_hosts:
       - "host.docker.internal:host-gateway"

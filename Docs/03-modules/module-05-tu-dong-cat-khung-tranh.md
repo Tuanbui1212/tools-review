@@ -1,6 +1,6 @@
 # Module 05: Tự động Cắt khung tranh & Biên tập Panel (Panel Extraction & Editor)
 
-> **Trạng thái:** 📝 **ĐẶC TẢ CHI TIẾT & KẾ HOẠCH TRIỂN KHAI**  
+> **Trạng thái:** 🧪 **NGHIỆM THU & ĐÃ HOÀN THÀNH TRIỂN KHAI**  
 > **Công đoạn Pipeline:** S3 (Tách panel & Xác định thứ tự đọc truyện)  
 > **Phạm vi:** Worker AI (`worker-ai/`) + Main Backend API (`main/`) + Giao diện Web Canvas (`web/`)  
 > **Branch:** `feature/module-05-panel-extraction`

@@ -57,3 +57,46 @@ export const CHAPTER_STATUS_CONFIG: Record<
   completed: { label: "Đã hoàn thành", color: "purple" },
   error: { label: "Lỗi xử lý", color: "error" },
 };
+
+export interface ChapterPanel {
+  id: number;
+  chapter_id: number;
+  chapter_page_id: number;
+  panel_number: number;
+  panel_index_in_page: number;
+  bbox_x: number;
+  bbox_y: number;
+  bbox_width: number;
+  bbox_height: number;
+  is_full_page: boolean;
+  image_path?: string | null;
+  image_url?: string | null;
+  google_drive_file_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PagePanelItem {
+  id?: number;
+  panel_index_in_page: number;
+  bbox_x: number;
+  bbox_y: number;
+  bbox_width: number;
+  bbox_height: number;
+  is_full_page?: boolean;
+}
+
+export interface PipelineTask {
+  id: number;
+  task_id: string;
+  project_id: number;
+  chapter_id: number | null;
+  task_type: string;
+  queue_name: string;
+  status: "pending" | "processing" | "completed" | "error";
+  progress: number;
+  stage_message?: string | null;
+  result?: any;
+  error_message?: string | null;
+}
+

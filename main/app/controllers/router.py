@@ -5,6 +5,7 @@ from app.controllers import (
     chapter_controller,
     health_controller,
     invitation_controller,
+    panel_controller,
     project_controller,
     task_controller,
     user_controller,
@@ -21,4 +22,5 @@ v1_router.include_router(user_controller.router)
 v1_router.include_router(project_controller.router)
 v1_router.include_router(invitation_controller.router)
 v1_router.include_router(chapter_controller.router)
+v1_router.include_router(panel_controller.router)
 v1_router.include_router(task_controller.router)

@@ -27,8 +27,8 @@ Mỗi lần chỉ làm **một module**. Module hiện tại xong và được c
 | **01** | Nền tảng hệ thống | Auth JWT, Quản lý tài khoản, Phân quyền Admin/Root/Sub kèm Web | ✅ đã xong |
 | **02** | Quản lý Dự án & Thành viên | Tạo dự án truyện, Phân quyền Owner/Member, Mời thành viên kèm Web | ✅ đã xong |
 | **03** | Quản lý Tập truyện & Tải ảnh | Tạo Chapter (S1-S2), Upload nhiều ảnh/ZIP, Sắp xếp thứ tự trang | ✅ đã xong |
-| **04** | Hạ tầng Kho lưu trữ & Worker | MinIO/S3 lưu trữ, Celery + Redis hàng đợi nền, WebSocket tiến độ | 📝 đang đặc tả |
-| **05** | Tự động Cắt khung tranh | Tách Panel (S3), Thứ tự đọc tranh, Công cụ Web sửa panel | ⏳ |
+| **04** | Hạ tầng Kho lưu trữ & Worker | Google Drive/S3 lưu trữ, 3 Worker Celery + Redis, WebSocket tiến độ | ✅ đã xong |
+| **05** | Tự động Cắt khung tranh | Tách Panel (S3), Thứ tự đọc tranh, Công cụ Web Canvas sửa panel | 🧪 nghiệm thu |
 | **06** | Nhận diện Lời thoại & OCR | Bóc tách bong bóng thoại (S4), OCR chữ đa ngôn ngữ, Từ điển Glossary | ⏳ |
 | **07** | Nhận diện Nhân vật & Gắn thoại | Nhận diện nhân vật (S5-S6), Gom cụm mặt, Gán người nói, Gate A | ⏳ |
 | **08** | Sinh Kịch bản Review AI | Gọi LLM viết kịch bản (S7), Phân đoạn theo khung tranh, Gate B | ⏳ |

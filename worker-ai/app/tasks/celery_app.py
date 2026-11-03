@@ -9,7 +9,7 @@ celery_app = Celery(
     "worker-ai",
     broker=settings.redis_url,
     backend=settings.redis_url,
-    include=["app.tasks.system_tasks"],
+    include=["app.tasks.system_tasks", "app.tasks.panel_tasks"],
 )
 
 # Worker AI chỉ phụ trách hàng đợi ai_queue

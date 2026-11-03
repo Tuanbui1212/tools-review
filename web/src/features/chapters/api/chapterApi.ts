@@ -6,7 +6,10 @@ import type {
   ChapterCreatePayload,
   ChapterListResponse,
   ChapterPage,
+  ChapterPanel,
   ChapterUpdatePayload,
+  PagePanelItem,
+  PipelineTask,
 } from "../types";
 
 export const chapterApi = {
@@ -116,4 +119,22 @@ export const chapterApi = {
     http.delete<void>(`/v1/chapters/${chapterId}/pages/${pageId}`),
 
   clearAllPages: (chapterId: number) => http.delete<void>(`/v1/chapters/${chapterId}/pages`),
+
+  triggerExtractPanels: (chapterId: number) =>
+    http.post<PipelineTask>(`/v1/chapters/${chapterId}/extract-panels`),
+
+  listPanels: (chapterId: number) =>
+    http.get<ChapterPanel[]>(`/v1/chapters/${chapterId}/panels`),
+
+  listPagePanels: (pageId: number) =>
+    http.get<ChapterPanel[]>(`/v1/chapter-pages/${pageId}/panels`),
+
+  updatePagePanels: (pageId: number, panels: PagePanelItem[]) =>
+    http.put<ChapterPanel[]>(`/v1/chapter-pages/${pageId}/panels`, { panels }),
+
+  reorderPanels: (chapterId: number, panelIds: number[]) =>
+    http.put<ChapterPanel[]>(`/v1/chapters/${chapterId}/panels/reorder`, { panel_ids: panelIds }),
+
+  getTask: (taskId: string) =>
+    http.get<PipelineTask>(`/v1/tasks/${taskId}`),
 };

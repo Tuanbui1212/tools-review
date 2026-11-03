@@ -12,6 +12,7 @@ from app.core.security import decode_access_token
 from app.db.session import get_db
 from app.models.user import User
 from app.repositories.chapter_page_repository import ChapterPageRepository
+from app.repositories.chapter_panel_repository import ChapterPanelRepository
 from app.repositories.chapter_repository import ChapterRepository
 from app.repositories.project_invitation_repository import ProjectInvitationRepository
 from app.repositories.project_member_repository import ProjectMemberRepository
@@ -21,6 +22,7 @@ from app.repositories.system_repository import SystemRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.common import MAX_PAGE_SIZE, PageParams
 from app.services.auth_service import AuthService
+from app.services.chapter_panel_service import ChapterPanelService
 from app.services.chapter_service import ChapterService
 from app.services.health_service import HealthService
 from app.services.pipeline_task_service import PipelineTaskService
@@ -125,4 +127,16 @@ def get_chapter_service(db: DbSession) -> ChapterService:
 
 def get_pipeline_task_service(db: DbSession) -> PipelineTaskService:
     return PipelineTaskService(db)
+
+
+def get_chapter_panel_service(db: DbSession) -> ChapterPanelService:
+    return ChapterPanelService(
+        db,
+        ChapterPanelRepository(db),
+        ChapterRepository(db),
+        ChapterPageRepository(db),
+        ProjectRepository(db),
+        ProjectMemberRepository(db),
+        PipelineTaskService(db),
+    )
 
