@@ -44,8 +44,7 @@ sequenceDiagram
         Worker->>Worker: Thuật toán Gutter Projection phân tích rãnh trắng & Bounding Box
         Worker->>Worker: Sắp xếp thứ tự đọc (rtl/ltr) & Crop các mảnh ảnh panel
         Worker->>Main: PATCH /api/v1/internal/tasks/{task_id}/progress (% = i/N * 100)
-        Main->>Redis: Publish event vào Redis Pub/Sub
-        Redis-->>Main: Luồng WebSocket của Main nhận message từ Pub/Sub
+        Main->>DB: Cập nhật progress & status vào PostgreSQL
         Main-->>Web: Main đẩy % Real-time qua WebSocket (Thanh tiến độ nhảy số)
     end
 
@@ -70,7 +69,7 @@ sequenceDiagram
     }
     ```
 * **Chiều lên Web (Main $\rightarrow$ Web Client):**
-  * Main nhận request cập nhật từ Worker $\rightarrow$ ngay lập tức bắn sự kiện qua **Redis Pub/Sub** và **WebSocket** (`/api/v1/ws/tasks/{task_id}`).
+  * Main nhận request cập nhật từ Worker $\rightarrow$ cập nhật ngay vào **PostgreSQL** và đẩy trực tiếp sự kiện qua **WebSocket** (`/api/v1/ws/tasks/{task_id}`) tới trình duyệt Web.
   * Thanh Progress Bar trên giao diện Web nhảy số theo thời gian thực mà người dùng không cần bấm F5.
 
 ---

@@ -152,8 +152,7 @@ sequenceDiagram
         Worker->>Main: GET /chapters/{id}/pages/{p_id}/file (Tải file ảnh gốc của trang)
         Worker->>Worker: OpenCV bóc rãnh trắng, xác định Bounding Box & crop ảnh
         Worker->>Main: PATCH /internal/tasks/{task_id}/progress (% = i/N * 100)
-        Main->>Redis: Publish event vào Redis Pub/Sub
-        Redis-->>Main: Luồng WebSocket của Main nhận message từ Pub/Sub
+        Main->>DB: Cập nhật progress vào PostgreSQL
         Main-->>Web: Main đẩy % Real-time qua WebSocket (Thanh tiến độ nhảy số)
     end
 
