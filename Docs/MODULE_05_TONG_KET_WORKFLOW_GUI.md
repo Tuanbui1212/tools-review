@@ -40,7 +40,7 @@ sequenceDiagram
     Worker->>Main: GET /api/v1/internal/chapters/{chapter_id}/pages (Lấy danh sách 24 trang)
     
     loop Duyệt tuần tự từng trang ảnh (1 -> N)
-        Worker->>Main: GET /api/v1/chapters/{id}/pages/{p_id}/file (Tải ảnh nhị phân)
+        Worker->>Main: GET /api/v1/chapters/{id}/pages/{p_id}/file (Tải file ảnh gốc của trang)
         Worker->>Worker: Thuật toán Gutter Projection phân tích rãnh trắng & Bounding Box
         Worker->>Worker: Sắp xếp thứ tự đọc (rtl/ltr) & Crop các mảnh ảnh panel
         Worker->>Main: PATCH /api/v1/internal/tasks/{task_id}/progress (% = i/N * 100)

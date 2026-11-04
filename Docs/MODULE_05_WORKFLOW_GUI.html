@@ -149,7 +149,7 @@ sequenceDiagram
     Worker->>Main: GET /internal/chapters/{id}/pages (Lấy danh sách trang ảnh)
     
     loop Duyệt tuần tự qua từng trang (1 -> N)
-        Worker->>Main: GET /chapters/{id}/pages/{p_id}/file (Tải ảnh nhị phân)
+        Worker->>Main: GET /chapters/{id}/pages/{p_id}/file (Tải file ảnh gốc của trang)
         Worker->>Worker: OpenCV bóc rãnh trắng, xác định Bounding Box & crop ảnh
         Worker->>Main: PATCH /internal/tasks/{task_id}/progress (% = i/N * 100)
         Main->>Redis: Publish event vào Redis Pub/Sub
