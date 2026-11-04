@@ -142,7 +142,8 @@ sequenceDiagram
     Web->>Main: POST /api/v1/chapters/{id}/extract-panels
     Main->>DB: Đổi chapter.status = "processing"
     Main->>Redis: Đẩy task "ai.extract_panels" vào ai_queue
-    Main-->>Web: Trả về task_id (lắng nghe WebSocket)
+    Main-->>Web: Trả về task_id
+    Web->>Main: Mở kết nối WebSocket (/ws/tasks/{task_id})
 
     Note over Worker,Redis: Worker AI nhận task (hàng đợi ai_queue, -c 2)
     Worker->>Main: GET /internal/chapters/{id}/pages (Lấy danh sách trang ảnh)
@@ -151,14 +152,15 @@ sequenceDiagram
         Worker->>Main: GET /chapters/{id}/pages/{p_id}/file (Tải ảnh nhị phân)
         Worker->>Worker: OpenCV bóc rãnh trắng, xác định Bounding Box & crop ảnh
         Worker->>Main: PATCH /internal/tasks/{task_id}/progress (% = i/N * 100)
-        Main->>Redis: Publish tiến độ vào channel:task:{task_id}
-        Redis-->>Web: WebSocket bắn % Real-time (Thanh Progress Bar nhảy mượt mà)
+        Main->>Redis: Publish event vào Redis Pub/Sub
+        Redis-->>Main: Luồng WebSocket của Main nhận message từ Pub/Sub
+        Main-->>Web: Main đẩy % Real-time qua WebSocket (Thanh tiến độ nhảy số)
     end
 
     Worker->>Main: POST /internal/chapters/{id}/panels/batch (Lưu toàn bộ toạ độ)
     Main->>DB: Ghi vào chapter_panels & đổi status = "ready"
     Worker->>Main: PATCH progress = 100%, status = "completed"
-    Main-->>Web: WebSocket thông báo hoàn tất
+    Main-->>Web: Main gửi WebSocket thông báo Hoàn tất 100%
     Web-->>User: Tải toạ độ lên Interactive Canvas để kiểm tra và chỉnh sửa
         </pre>
       </div>
@@ -547,3 +549,4 @@ sequenceDiagram
   </script>
 </body>
 </html>
+

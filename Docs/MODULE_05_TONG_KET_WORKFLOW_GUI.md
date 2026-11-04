@@ -29,12 +29,12 @@ sequenceDiagram
     participant Worker as 🤖 Worker AI (OpenCV Celery)
     participant DB as 🗄️ PostgreSQL
 
-    User->>Web: Chuyển sang Tab "2. Cắt khung tranh"
     User->>Web: Bấm "Tự động cắt toàn bộ Chapter"
     Web->>Main: POST /api/v1/chapters/{chapter_id}/extract-panels
     Main->>DB: Đổi chapter.status = "processing"
     Main->>Redis: Đẩy task "ai.extract_panels" vào ai_queue
-    Main-->>Web: Trả về task_id (kết nối WebSocket /ws/tasks/{task_id})
+    Main-->>Web: Trả về task_id
+    Web->>Main: Mở kết nối WebSocket (/ws/tasks/{task_id})
 
     Note over Worker,Redis: Worker AI nhận task từ ai_queue (concurrency=2)
     Worker->>Main: GET /api/v1/internal/chapters/{chapter_id}/pages (Lấy danh sách 24 trang)
@@ -44,14 +44,15 @@ sequenceDiagram
         Worker->>Worker: Thuật toán Gutter Projection phân tích rãnh trắng & Bounding Box
         Worker->>Worker: Sắp xếp thứ tự đọc (rtl/ltr) & Crop các mảnh ảnh panel
         Worker->>Main: PATCH /api/v1/internal/tasks/{task_id}/progress (% = i/N * 100)
-        Main->>Redis: Publish tiến độ vào channel:task:{task_id}
-        Redis-->>Web: WebSocket bắn % Real-time (Thanh Progress Bar nhảy mượt mà)
+        Main->>Redis: Publish event vào Redis Pub/Sub
+        Redis-->>Main: Luồng WebSocket của Main nhận message từ Pub/Sub
+        Main-->>Web: Main đẩy % Real-time qua WebSocket (Thanh tiến độ nhảy số)
     end
 
     Worker->>Main: POST /api/v1/internal/chapters/{chapter_id}/panels/batch (Gửi toàn bộ toạ độ)
     Main->>DB: Lưu các bản ghi vào bảng chapter_panels & đổi status = "ready"
     Worker->>Main: PATCH progress = 100%, status = "completed"
-    Main-->>Web: WebSocket báo hoàn thành 100%
+    Main-->>Web: Main gửi WebSocket thông báo Hoàn tất 100%
     Web-->>User: Tự động tải dữ liệu toạ độ lên Interactive Canvas để kiểm tra/sửa
 ```
 
@@ -182,3 +183,4 @@ Giao diện Module 05 được thiết kế theo phong cách Dark theme **"Studi
    * Vào Dự án bất kỳ $\rightarrow$ Bấm mở 1 Chapter đã tải ảnh lên.
    * Chuyển sang Tab: **"2. Cắt khung tranh (Module 05)"**.
    * Bấm nút: **"Tự động cắt toàn bộ Chapter"** $\rightarrow$ Bạn sẽ thấy thanh Progress Bar hiển thị % thời gian thực và toàn bộ các khung tranh hiện lên Canvas để kiểm tra.
+
