@@ -52,3 +52,4 @@ class ChapterPanel(IdMixin, TimestampMixin, Base):
 
     chapter = relationship("Chapter", backref="panels")
     page = relationship("ChapterPage", backref="panels")
+

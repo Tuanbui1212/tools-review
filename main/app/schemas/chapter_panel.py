@@ -50,3 +50,4 @@ class PagePanelsUpdate(BaseModel):
 
 class ChapterPanelsReorder(BaseModel):
     panel_ids: list[int] = Field(min_length=1, description="Danh sách ID panel theo thứ tự đọc mới")
+

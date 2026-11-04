@@ -86,3 +86,4 @@ def downgrade() -> None:
     op.drop_index("ix_chapter_panels_chapter_page_id", table_name="chapter_panels")
     op.drop_index("ix_chapter_panels_chapter_id", table_name="chapter_panels")
     op.drop_table("chapter_panels")
+

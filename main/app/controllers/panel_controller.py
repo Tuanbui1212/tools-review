@@ -140,3 +140,4 @@ def save_panels_batch_internal(
     """Internal API: Worker AI đẩy toàn bộ kết quả toạ độ và đường dẫn ảnh panel sau khi cắt."""
     panels = service.save_panels_batch_internal(chapter_id, panels_data)
     return [ChapterPanelRead.model_validate(p) for p in panels]
+

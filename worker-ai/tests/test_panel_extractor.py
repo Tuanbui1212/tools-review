@@ -41,3 +41,4 @@ def test_panel_extractor_full_page_fallback():
     assert panels[0]["is_full_page"] is True
     assert panels[0]["bbox_width"] == 700
     assert panels[0]["bbox_height"] == 1000
+

@@ -220,3 +220,4 @@ class PanelExtractorService:
                 result.append((b[0], b[1], b[2], b[3], False))
 
         return result
+

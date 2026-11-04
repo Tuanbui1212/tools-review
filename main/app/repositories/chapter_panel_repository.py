@@ -93,3 +93,4 @@ class ChapterPanelRepository(BaseRepository[ChapterPanel]):
 
         self.db.commit()
         return self.list_by_chapter(chapter_id)
+

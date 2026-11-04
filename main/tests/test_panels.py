@@ -157,3 +157,4 @@ def test_panels_full_lifecycle(client, make_user, login) -> None:
     assert reordered_panels[0]["panel_number"] == 1
     assert reordered_panels[1]["id"] == list_res_after[0]["id"]
     assert reordered_panels[1]["panel_number"] == 2
+

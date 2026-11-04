@@ -126,3 +126,4 @@ def extract_panels_task(
             error_message=traceback.format_exc(),
         )
         return {"error": str(e)}
+
