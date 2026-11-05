@@ -69,6 +69,8 @@ export interface ChapterPanel {
   bbox_width: number;
   bbox_height: number;
   is_full_page: boolean;
+  source?: "ai" | "manual";
+  polygon_points?: [number, number][] | null;
   image_path?: string | null;
   image_url?: string | null;
   google_drive_file_id?: string | null;
@@ -84,6 +86,8 @@ export interface PagePanelItem {
   bbox_width: number;
   bbox_height: number;
   is_full_page?: boolean;
+  source?: "ai" | "manual";
+  polygon_points?: [number, number][] | null;
 }
 
 export interface PipelineTask {

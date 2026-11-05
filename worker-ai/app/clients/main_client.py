@@ -57,7 +57,7 @@ class MainClient:
 
     def download_page_file(self, chapter_id: int, page_id: int) -> bytes:
         """Tải nội dung nhị phân của trang ảnh từ Main."""
-        url = f"{self.base_url}/api/v1/chapters/{chapter_id}/pages/{page_id}/file"
+        url = f"{self.base_url}/api/v1/internal/chapters/{chapter_id}/pages/{page_id}/file"
         with httpx.Client(timeout=self.timeout) as client:
             res = client.get(url)
             res.raise_for_status()
@@ -68,5 +68,15 @@ class MainClient:
         url = f"{self.base_url}/api/v1/internal/chapters/{chapter_id}/panels/batch"
         with httpx.Client(timeout=self.timeout) as client:
             res = client.post(url, json=panels)
+            res.raise_for_status()
+            return res.json()
+
+    def save_single_page_panels(
+        self, chapter_id: int, page_id: int, panels: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Lưu danh sách panel của một trang cụ thể lên Main."""
+        url = f"{self.base_url}/api/v1/internal/chapters/{chapter_id}/pages/{page_id}/panels"
+        with httpx.Client(timeout=self.timeout) as client:
+            res = client.put(url, json={"panels": panels})
             res.raise_for_status()
             return res.json()

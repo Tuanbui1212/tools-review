@@ -267,6 +267,21 @@ class ChapterService:
 
         try:
             self.page_repo.reorder_pages(chapter, page_ids)
+            # Tái tính toán số thứ tự panel_number xuyên suốt chapter nếu đã có panels
+            from app.models.chapter_panel import ChapterPanel
+            from sqlalchemy import select
+            panels_stmt = (
+                select(ChapterPanel)
+                .join(ChapterPage, ChapterPanel.chapter_page_id == ChapterPage.id)
+                .where(ChapterPanel.chapter_id == chapter_id)
+                .order_by(ChapterPage.page_number.asc(), ChapterPanel.panel_index_in_page.asc())
+            )
+            existing_panels = self.db.scalars(panels_stmt).all()
+            if existing_panels:
+                for idx, panel in enumerate(existing_panels, start=1):
+                    panel.panel_number = idx
+                    self.db.add(panel)
+                self.db.commit()
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
@@ -305,4 +320,17 @@ class ChapterService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Tệp ảnh không tồn tại hoặc lỗi tải từ storage: {e}",
             ) from e
+
+    def get_page_file_path_internal(self, chapter_id: int, page_id: int) -> Path:
+        page = self.page_repo.get_by_id(page_id)
+        if not page or page.chapter_id != chapter_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy trang ảnh")
+        try:
+            return self.ingest_service.get_local_file_path(page.file_path)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Tệp ảnh không tồn tại hoặc lỗi tải từ storage: {e}",
+            ) from e
+
 

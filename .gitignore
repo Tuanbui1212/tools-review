@@ -18,6 +18,7 @@ dist/
 # Thư mục làm việc local của engine & storage
 client/app/engine/workspace/
 main/storage/
+storage/
 downloads/
 
 # Hệ điều hành / editor

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { chapterApi } from "../api/chapterApi";
 import type { PagePanelItem, PipelineTask } from "../types";
@@ -31,6 +31,17 @@ export function useTriggerExtractPanels(chapterId: number) {
   });
 }
 
+export function useExtractPagePanels(chapterId: number, pageId: number | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => chapterApi.extractPagePanels(chapterId, pageId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["chapter-pages", pageId, "panels"] });
+      queryClient.invalidateQueries({ queryKey: ["chapters", chapterId, "panels"] });
+    },
+  });
+}
+
 export function useUpdatePagePanels(pageId: number, chapterId: number) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -54,23 +65,28 @@ export function useReorderPanels(chapterId: number) {
 
 export function useTaskProgress(taskId: string | null, onCompleted?: () => void) {
   const [task, setTask] = useState<PipelineTask | null>(null);
+  const onCompletedRef = useRef(onCompleted);
+
+  useEffect(() => {
+    onCompletedRef.current = onCompleted;
+  }, [onCompleted]);
 
   // 1. Polling fallback query
   const query = useQuery({
     queryKey: ["tasks", taskId],
     queryFn: () => (taskId ? chapterApi.getTask(taskId) : null),
     enabled: Boolean(taskId && task?.status !== "completed" && task?.status !== "error"),
-    refetchInterval: 1500,
+    refetchInterval: 1200,
   });
 
   useEffect(() => {
     if (query.data) {
       setTask(query.data);
       if (query.data.status === "completed") {
-        onCompleted?.();
+        onCompletedRef.current?.();
       }
     }
-  }, [query.data, onCompleted]);
+  }, [query.data]);
 
   // 2. WebSocket thời gian thực
   useEffect(() => {
@@ -109,7 +125,7 @@ export function useTaskProgress(taskId: string | null, onCompleted?: () => void)
           }));
 
           if (data.status === "completed") {
-            onCompleted?.();
+            onCompletedRef.current?.();
           }
         } catch {
           // ignore parse errors
@@ -124,7 +140,7 @@ export function useTaskProgress(taskId: string | null, onCompleted?: () => void)
         ws.close();
       }
     };
-  }, [taskId, onCompleted]);
+  }, [taskId]);
 
   return task;
 }

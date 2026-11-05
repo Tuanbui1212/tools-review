@@ -36,7 +36,7 @@ import {
 } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useProject } from "../../projects/hooks/useProjects";
 import { ChapterPanelsTab } from "../components/ChapterPanelsTab";
@@ -71,6 +71,25 @@ export function ChapterPagesPage() {
   const project = projectQuery.data;
   const chapter = chapterQuery.data;
   const originalPages = pagesQuery.data ?? [];
+
+  // Quản lý Tab qua URL query param (?tab=panels)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get("tab") || "pages";
+
+  const handleTabChange = (key: string) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (key === "pages") {
+          next.delete("tab");
+        } else {
+          next.set("tab", key);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   // State lưu thứ tự trang đang thao tác
   const [localPages, setLocalPages] = useState<ChapterPage[]>([]);
@@ -344,7 +363,8 @@ export function ChapterPagesPage() {
 
       {/* Hệ thống Tabs: Quản lý trang & Cắt khung tranh (Module 05) */}
       <Tabs
-        defaultActiveKey="pages"
+        activeKey={currentTab}
+        onChange={handleTabChange}
         type="card"
         items={[
           {

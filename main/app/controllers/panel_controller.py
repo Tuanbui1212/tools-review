@@ -103,6 +103,23 @@ def reorder_chapter_panels(
     return result
 
 
+@router.post("/chapters/{chapter_id}/pages/{page_id}/extract-panels", response_model=list[ChapterPanelRead])
+def extract_single_page_panels(
+    chapter_id: int,
+    page_id: int,
+    actor: CurrentUser,
+    service: ChapterPanelServiceDep,
+) -> list[ChapterPanelRead]:
+    """Tự động cắt lại chỉ riêng 1 trang này bằng AI."""
+    panels = service.extract_single_page_panels(actor, chapter_id, page_id)
+    result: list[ChapterPanelRead] = []
+    for p in panels:
+        item = ChapterPanelRead.model_validate(p)
+        item.image_url = f"/api/v1/chapters/{chapter_id}/panels/{p.id}/file"
+        result.append(item)
+    return result
+
+
 @router.get("/chapters/{chapter_id}/panels/{panel_id}/file")
 def get_panel_file(
     chapter_id: int,
@@ -127,6 +144,17 @@ def get_chapter_pages_internal(
     return [ChapterPageRead.model_validate(p) for p in pages]
 
 
+@router.get("/internal/chapters/{chapter_id}/pages/{page_id}/file")
+def get_page_file_internal(
+    chapter_id: int,
+    page_id: int,
+    service: ChapterServiceDep,
+) -> FileResponse:
+    """Internal API: Worker AI tải file ảnh gốc của trang để xử lý cắt khung."""
+    file_path = service.get_page_file_path_internal(chapter_id, page_id)
+    return FileResponse(path=file_path)
+
+
 @router.post(
     "/internal/chapters/{chapter_id}/panels/batch",
     response_model=list[ChapterPanelRead],
@@ -139,5 +167,20 @@ def save_panels_batch_internal(
 ) -> list[ChapterPanelRead]:
     """Internal API: Worker AI đẩy toàn bộ kết quả toạ độ và đường dẫn ảnh panel sau khi cắt."""
     panels = service.save_panels_batch_internal(chapter_id, panels_data)
+    return [ChapterPanelRead.model_validate(p) for p in panels]
+
+
+@router.put(
+    "/internal/chapters/{chapter_id}/pages/{page_id}/panels",
+    response_model=list[ChapterPanelRead],
+)
+def save_single_page_panels_internal(
+    chapter_id: int,
+    page_id: int,
+    body: PagePanelsUpdate,
+    service: ChapterPanelServiceDep,
+) -> list[ChapterPanelRead]:
+    """Internal API: Worker AI đẩy kết quả cắt khung cho 1 trang cụ thể."""
+    panels = service.save_single_page_panels_internal(chapter_id, page_id, body)
     return [ChapterPanelRead.model_validate(p) for p in panels]
 

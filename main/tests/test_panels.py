@@ -158,3 +158,25 @@ def test_panels_full_lifecycle(client, make_user, login) -> None:
     assert reordered_panels[1]["id"] == list_res_after[0]["id"]
     assert reordered_panels[1]["panel_number"] == 2
 
+    # 10. Test internal endpoint lưu panel từng trang (như Worker AI gọi)
+    single_save_res = client.put(
+        f"/api/v1/internal/chapters/{chapter_id}/pages/{page1_id}/panels",
+        json={
+            "panels": [
+                {
+                    "panel_index_in_page": 1,
+                    "bbox_x": 0,
+                    "bbox_y": 0,
+                    "bbox_width": 50,
+                    "bbox_height": 50,
+                    "image_path": "/tmp/test.jpg",
+                }
+            ]
+        },
+    )
+    assert single_save_res.status_code == 200
+    single_saved = single_save_res.json()
+    assert len(single_saved) == 1
+    assert single_saved[0]["image_path"] == "/tmp/test.jpg"
+
+

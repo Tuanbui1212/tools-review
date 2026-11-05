@@ -5,6 +5,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     String,
     Text,
 )
@@ -49,6 +50,13 @@ class ChapterPanel(IdMixin, TimestampMixin, Base):
         server_default="false",
         nullable=False,
     )
+    source: Mapped[str] = mapped_column(
+        String(32),
+        default="ai",
+        server_default="ai",
+        nullable=False,
+    )
+    polygon_points: Mapped[list[list[int]] | None] = mapped_column(JSON, nullable=True)
 
     chapter = relationship("Chapter", backref="panels")
     page = relationship("ChapterPage", backref="panels")

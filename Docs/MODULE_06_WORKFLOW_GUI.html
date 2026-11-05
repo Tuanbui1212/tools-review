@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 06: Nhận diện Lời thoại & OCR (Dialogue Studio Workflow)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            studio: {
+              orange: '#ff7a18',
+              pink: '#af002d',
+              dark: '#141414',
+              surface: '#1f1f1f',
+              border: '#303030'
+            }
+          }
+        }
+      }
+    };
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+    }
+    code, pre {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .studio-gradient {
+      background: linear-gradient(135deg, #108ee9 0%, #87d068 100%);
+    }
+    .bubble-speech {
+      border: 2px solid #52c41a;
+      background-color: rgba(82, 196, 26, 0.18);
+    }
+    .bubble-thought {
+      border: 2px dashed #1890ff;
+      background-color: rgba(24, 144, 255, 0.18);
+    }
+    .bubble-narration {
+      border: 2px solid #fa8c16;
+      background-color: rgba(250, 140, 22, 0.18);
+    }
+  </style>
+</head>
+<body class="bg-[#0f0f0f] text-gray-200 min-h-screen">
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-studio-border bg-studio-surface px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg studio-gradient flex items-center justify-center font-bold text-black text-sm">
+        06
+      </div>
+      <div>
+        <h1 class="text-lg font-bold text-white tracking-wide">Module 06: Nhận diện Lời thoại & OCR (Dialogue Studio)</h1>
+        <p class="text-xs text-gray-400">Kiến trúc kỹ thuật, Luồng xử lý AI đa ngôn ngữ và Giao diện Web biên tập lời thoại</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-xs">
+      <span class="px-2.5 py-1 rounded bg-blue-900/60 text-blue-300 font-semibold border border-blue-700">Công đoạn S4</span>
+      <span class="px-2.5 py-1 rounded bg-green-900/60 text-green-300 font-semibold border border-green-700">Chuẩn bị thực thi</span>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-10">
+    <!-- Overview Section -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-studio-surface border border-studio-border rounded-xl p-5 shadow-lg">
+        <div class="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Đầu vào (Input)</div>
+        <div class="text-lg font-bold text-white flex items-center gap-2">
+          <span>🖼️ Các mảnh Panel từ Module 05</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Toạ độ hình chữ nhật và ảnh PNG đa giác mặt nạ trong suốt đã bóc tách chính xác từ từng trang truyện.</p>
+      </div>
+
+      <div class="bg-studio-surface border border-studio-border rounded-xl p-5 shadow-lg">
+        <div class="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Mục tiêu xử lý (AI Core)</div>
+        <div class="text-lg font-bold text-blue-400 flex items-center gap-2">
+          <span>💬 Text Detection + OCR Đa Ngôn Ngữ</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Tìm vị trí bong bóng thoại (`comic-text-detector`), nhận diện chữ (`manga-ocr` cho Nhật, `PaddleOCR` cho Hàn/Trung/Anh/Việt).</p>
+      </div>
+
+      <div class="bg-studio-surface border border-studio-border rounded-xl p-5 shadow-lg">
+        <div class="text-xs uppercase tracking-wider text-gray-400 font-bold mb-1">Đầu ra (Output)</div>
+        <div class="text-lg font-bold text-green-400 flex items-center gap-2">
+          <span>📝 Danh mục Lời thoại chuẩn hóa</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Dữ liệu câu thoại có toạ độ, phân loại (`speech`, `thought`, `narration`, `sfx`) đã qua bộ từ điển Glossary.</p>
+      </div>
+    </section>
+
+    <!-- Architecture Mermaid Flowchart -->
+    <section class="bg-studio-surface border border-studio-border rounded-xl p-6 shadow-xl">
+      <h2 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+        Sơ đồ luồng xử lý toàn trình (End-to-End Pipeline)
+      </h2>
+      <div class="mermaid bg-black/40 p-4 rounded-lg flex justify-center">
+flowchart LR
+    A["Mảnh Panel (Module 05)"] --> B["comic-text-detector<br>(Phát hiện Bong bóng)"]
+    B --> C{"Loại ngôn ngữ"}
+    C -->|"Tiếng Nhật (ja)"| D["manga-ocr<br>(Chữ dọc, Furigana)"]
+    C -->|"Hàn / Trung / Anh / Việt"| E["PaddleOCR v4<br>(Đa ngôn ngữ)"]
+    D --> F["Project Glossary Filter<br>(Chuẩn hoá tên nhân vật/chiêu thức)"]
+    E --> F
+    F --> G["Lưu DB: panel_dialogues"]
+    G --> H["Web Dialogue Studio<br>(Đối chiếu Side-by-Side & Sửa tay)"]
+      </div>
+    </section>
+
+    <!-- Phân loại loại bong bóng thoại -->
+    <section class="bg-studio-surface border border-studio-border rounded-xl p-6 shadow-xl">
+      <h2 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+        Phân loại 4 hình thức văn bản trong Manga / Comic
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+        <div class="p-4 rounded-lg bubble-speech border">
+          <div class="font-bold text-green-400 text-sm mb-1">1. Lời thoại (speech)</div>
+          <p class="text-gray-300">Bong bóng oval hoặc elip có đuôi trỏ về phía nhân vật nói. Phát ra tiếng trong cuộc trò chuyện.</p>
+          <div class="mt-3 px-2 py-1 bg-black/40 rounded text-green-300 font-mono">TTS: Đọc giọng nhân vật</div>
+        </div>
+        <div class="p-4 rounded-lg bubble-thought border">
+          <div class="font-bold text-blue-400 text-sm mb-1">2. Suy nghĩ (thought)</div>
+          <p class="text-gray-300">Bong bóng hình đám mây hoặc viền nét đứt. Suy nghĩ nội tâm thầm kín trong đầu.</p>
+          <div class="mt-3 px-2 py-1 bg-black/40 rounded text-blue-300 font-mono">TTS: Đọc giọng thì thầm/trầm</div>
+        </div>
+        <div class="p-4 rounded-lg bubble-narration border">
+          <div class="font-bold text-yellow-400 text-sm mb-1">3. Dẫn truyện (narration)</div>
+          <p class="text-gray-300">Hộp chữ nhật vuông vức nằm ở góc trên hoặc dưới panel. Lời người kể chuyện.</p>
+          <div class="mt-3 px-2 py-1 bg-black/40 rounded text-yellow-300 font-mono">TTS: Đọc giọng truyền cảm</div>
+        </div>
+        <div class="p-4 rounded-lg bg-gray-800/60 border border-gray-600">
+          <div class="font-bold text-gray-300 text-sm mb-1">4. Hiệu ứng (sfx)</div>
+          <p class="text-gray-300">Chữ vẽ tay cách điệu biểu thị âm thanh (BÙM, KENG, VÚT, OÁNH...).</p>
+          <div class="mt-3 px-2 py-1 bg-black/40 rounded text-gray-400 font-mono">Tuỳ chọn: Tắt hoặc gán Audio FX</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GUI Prototype Mockup -->
+    <section class="bg-studio-surface border border-studio-border rounded-xl p-6 shadow-xl">
+      <h2 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+        Giao diện Web mẫu: Dialogue Studio (Tab 3 trong Chapter)
+      </h2>
+      <p class="text-xs text-gray-400 mb-4">Mô phỏng trực quan 3 cột: Filmstrip panel $\rightarrow$ Canvas soi bong bóng $\rightarrow$ Trình sửa thoại trực tiếp</p>
+
+      <div class="border border-studio-border rounded-lg bg-black/60 overflow-hidden">
+        <!-- Sub-header -->
+        <div class="px-4 py-2 bg-studio-surface border-b border-studio-border flex items-center justify-between text-xs">
+          <div class="flex items-center gap-3">
+            <span class="font-bold text-white">Biên tập Lời thoại (Module 06)</span>
+            <span class="px-2 py-0.5 rounded bg-blue-900/60 text-blue-300">Trang 1 • Khung #2</span>
+            <span class="px-2 py-0.5 rounded bg-purple-900/60 text-purple-300">2 câu thoại</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="px-3 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded font-medium">Quét lại panel này</button>
+            <button class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-medium">Lưu lời thoại</button>
+          </div>
+        </div>
+
+        <!-- 3 Columns Layout -->
+        <div class="grid grid-cols-12 min-h-[420px]">
+          <!-- Cột 1: Filmstrip -->
+          <div class="col-span-3 border-r border-studio-border p-3 space-y-2 bg-[#121212]">
+            <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Danh sách Khung tranh</div>
+            <div class="p-2 rounded bg-studio-surface border border-blue-500 flex items-center gap-2 cursor-pointer">
+              <div class="w-10 h-10 bg-gray-700 rounded flex items-center justify-center font-bold text-xs text-blue-400">#1</div>
+              <div class="flex-1 min-w-0 text-xs">
+                <div class="font-bold text-white">Khung #1</div>
+                <div class="text-[10px] text-gray-400">2 bong bóng thoại</div>
+              </div>
+            </div>
+            <div class="p-2 rounded bg-studio-surface border border-studio-border flex items-center gap-2 cursor-pointer hover:border-gray-500">
+              <div class="w-10 h-10 bg-gray-800 rounded flex items-center justify-center font-bold text-xs text-gray-400">#2</div>
+              <div class="flex-1 min-w-0 text-xs">
+                <div class="font-bold text-gray-300">Khung #2</div>
+                <div class="text-[10px] text-gray-500">1 câu thoại</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cột 2: Canvas soi bóng thoại -->
+          <div class="col-span-5 p-4 flex items-center justify-center bg-[#181818] relative">
+            <div class="w-[280px] h-[340px] bg-[#222] border border-gray-700 rounded relative shadow-2xl overflow-hidden flex items-center justify-center">
+              <span class="text-xs text-gray-600 select-none">[ Ảnh Panel Khung #1 ]</span>
+
+              <!-- Bubble Box 1 -->
+              <div class="absolute top-10 right-6 w-24 h-20 bubble-speech rounded-full flex flex-col items-center justify-center p-1 text-[10px] text-green-300 font-bold border cursor-pointer shadow-lg hover:scale-105 transition-transform">
+                <span class="bg-green-600 text-black text-[9px] px-1 rounded font-black mb-0.5">#1 Thoại</span>
+                <span class="text-center text-[9px] leading-tight">Đứng lại đó!</span>
+              </div>
+
+              <!-- Bubble Box 2 -->
+              <div class="absolute bottom-12 left-6 w-28 h-20 bubble-thought rounded-2xl flex flex-col items-center justify-center p-1 text-[10px] text-blue-300 font-bold border cursor-pointer shadow-lg hover:scale-105 transition-transform">
+                <span class="bg-blue-600 text-white text-[9px] px-1 rounded font-black mb-0.5">#2 Suy nghĩ</span>
+                <span class="text-center text-[9px] leading-tight">Hắn nhanh quá...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cột 3: Trình sửa text -->
+          <div class="col-span-4 border-l border-studio-border p-4 space-y-3 bg-[#121212]">
+            <div class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+              <span>Nội dung Lời thoại</span>
+              <button class="text-blue-400 hover:text-blue-300 font-normal lowercase">+ thêm câu</button>
+            </div>
+
+            <!-- Card Câu 1 -->
+            <div class="p-3 rounded-lg bg-studio-surface border border-green-500/60 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="px-1.5 py-0.5 rounded bg-green-900/60 text-green-300 font-bold text-[10px]">#1</span>
+                  <select class="bg-black/60 border border-gray-700 rounded text-[11px] px-1.5 py-0.5 text-green-400">
+                    <option selected>Lời thoại (Speech)</option>
+                    <option>Suy nghĩ (Thought)</option>
+                    <option>Dẫn chuyện (Narration)</option>
+                    <option>SFX</option>
+                  </select>
+                </div>
+                <button class="text-gray-500 hover:text-red-400 text-xs">🗑️</button>
+              </div>
+              <textarea rows="2" class="w-full bg-black/50 border border-gray-700 rounded p-1.5 text-xs text-white focus:border-green-500 focus:outline-none" placeholder="Nội dung lời thoại">Đứng lại đó!</textarea>
+            </div>
+
+            <!-- Card Câu 2 -->
+            <div class="p-3 rounded-lg bg-studio-surface border border-blue-500/60 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="px-1.5 py-0.5 rounded bg-blue-900/60 text-blue-300 font-bold text-[10px]">#2</span>
+                  <select class="bg-black/60 border border-gray-700 rounded text-[11px] px-1.5 py-0.5 text-blue-400">
+                    <option>Lời thoại (Speech)</option>
+                    <option selected>Suy nghĩ (Thought)</option>
+                    <option>Dẫn chuyện (Narration)</option>
+                    <option>SFX</option>
+                  </select>
+                </div>
+                <button class="text-gray-500 hover:text-red-400 text-xs">🗑️</button>
+              </div>
+              <textarea rows="2" class="w-full bg-black/50 border border-gray-700 rounded p-1.5 text-xs text-white focus:border-blue-500 focus:outline-none" placeholder="Nội dung lời thoại">Hắn ta di chuyển nhanh quá...</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+

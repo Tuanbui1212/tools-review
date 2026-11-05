@@ -40,7 +40,7 @@ class ChapterPanelRepository(BaseRepository[ChapterPanel]):
         self.db.commit()
 
     def save_batch_panels(self, chapter_id: int, panels: list[ChapterPanel]) -> list[ChapterPanel]:
-        """Xoá toàn bộ panel cũ của chapter và lưu bộ mới."""
+        """Xoá toàn bộ panel cũ của chapter (kể cả thủ công) và lưu bộ mới từ AI."""
         self.db.execute(delete(ChapterPanel).where(ChapterPanel.chapter_id == chapter_id))
         for p in panels:
             self.db.add(p)
@@ -85,10 +85,13 @@ class ChapterPanelRepository(BaseRepository[ChapterPanel]):
             self.db.add(p)
         self.db.flush()
 
-        # Gán lại chuẩn từ 1 đến N
+        # Gán lại chuẩn từ 1 đến N và cập nhật panel_index_in_page theo thứ tự mới
+        page_index_map: dict[int, int] = {}
         for idx, pid in enumerate(panel_ids, start=1):
             p = current_panels[pid]
             p.panel_number = idx
+            page_index_map[p.chapter_page_id] = page_index_map.get(p.chapter_page_id, 0) + 1
+            p.panel_index_in_page = page_index_map[p.chapter_page_id]
             self.db.add(p)
 
         self.db.commit()

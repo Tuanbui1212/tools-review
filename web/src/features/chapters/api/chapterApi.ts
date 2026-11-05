@@ -123,6 +123,9 @@ export const chapterApi = {
   triggerExtractPanels: (chapterId: number) =>
     http.post<PipelineTask>(`/v1/chapters/${chapterId}/extract-panels`),
 
+  extractPagePanels: (chapterId: number, pageId: number) =>
+    http.post<ChapterPanel[]>(`/v1/chapters/${chapterId}/pages/${pageId}/extract-panels`),
+
   listPanels: (chapterId: number) =>
     http.get<ChapterPanel[]>(`/v1/chapters/${chapterId}/panels`),
 

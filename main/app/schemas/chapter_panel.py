@@ -9,6 +9,10 @@ class ChapterPanelBase(BaseModel):
     bbox_width: int = Field(gt=0, description="Chiều rộng khung")
     bbox_height: int = Field(gt=0, description="Chiều cao khung")
     is_full_page: bool = False
+    source: str = "ai"
+    polygon_points: list[list[int]] | None = Field(
+        default=None, description="Danh sách các điểm đỉnh đa giác [[x1, y1], [x2, y2], ...]"
+    )
 
 
 class ChapterPanelCreate(ChapterPanelBase):
@@ -42,6 +46,9 @@ class PagePanelItem(BaseModel):
     bbox_width: int = Field(gt=0)
     bbox_height: int = Field(gt=0)
     is_full_page: bool = False
+    source: str = "manual"
+    image_path: str | None = None
+    polygon_points: list[list[int]] | None = None
 
 
 class PagePanelsUpdate(BaseModel):
